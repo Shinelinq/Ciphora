@@ -248,14 +248,9 @@ pub async fn prepare_cimbar_payload(
         let id_set: HashSet<String> = ids.into_iter().collect();
         all_passwords
             .into_iter()
-            .filter(|entry| {
-                entry
-                    .as_object()
-                    .and_then(|obj| obj.get("id"))
-                    .and_then(Value::as_str)
-                    .map(|id| id_set.contains(id))
-                    .unwrap_or(false)
-            })
+            .filter(|entry| entry_id(entry)
+                .map(|id| id_set.contains(&id))
+                .unwrap_or(false))
             .collect()
     } else {
         all_passwords
@@ -492,6 +487,11 @@ pub fn get_string_field(entry: &PasswordEntry, key: &str) -> Option<String> {
         .and_then(|obj| obj.get(key))
         .and_then(Value::as_str)
         .map(|s| s.to_string())
+}
+
+/// 用途: 读取条目 ID（兼容 id 与 _id）; 输入: 条目; 输出: 可选 ID; 必要性: 统一不同来源条目的标识字段。
+pub fn entry_id(entry: &PasswordEntry) -> Option<String> {
+    get_string_field(entry, "id").or_else(|| get_string_field(entry, "_id"))
 }
 
 pub fn now_iso() -> String {

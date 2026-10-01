@@ -1,14 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import PasswordCard from './PasswordCard';
+import MobilePasswordList from './MobilePasswordList';
 import SearchBox from './SearchBox';
 import GroupTabs from './GroupTabs';
 import GroupManageModal from './GroupManageModal';
 import { useGroups } from '../hooks/useGroups';
 import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { haptic } from '../lib/utils';
 import { useMobile } from '../hooks/useMobile';
 import { useTranslation } from 'react-i18next';
 
-const MainVault = ({ passwords = [], isLoading = false, onAddPassword, onEditPassword, onDeletePassword, onRefresh, hideSensitiveButtons = false, settings = null }) => {
+const MainVault = ({ passwords = [], isLoading = false, onAddPassword, onEditPassword, onDeletePassword, onRefresh, hideSensitiveButtons = false, settings = null, activeSheetPassword = null, onSheetPasswordChange }) => {
     const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState('');
     const { isMobile } = useMobile();
@@ -17,7 +19,42 @@ const MainVault = ({ passwords = [], isLoading = false, onAddPassword, onEditPas
     const [showGroupModal, setShowGroupModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
 
+    // 移动端滑删：先隐藏并弹出「撤销」条，超时后再真正删除
+    const [pendingDelete, setPendingDelete] = useState(null);
+    const pendingDeleteRef = useRef(null);
+    const pendingTimerRef = useRef(null);
+
+    const requestDelete = useCallback((password) => {
+        // 若已有待删项，先立即提交，避免覆盖丢失
+        if (pendingDeleteRef.current) {
+            if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+            onDeletePassword(pendingDeleteRef.current.id);
+        }
+        const commit = () => {
+            const target = pendingDeleteRef.current;
+            pendingDeleteRef.current = null;
+            pendingTimerRef.current = null;
+            setPendingDelete(null);
+            if (target) onDeletePassword(target.id);
+        };
+        pendingDeleteRef.current = password;
+        setPendingDelete(password);
+        pendingTimerRef.current = setTimeout(commit, 5000);
+        haptic(15);
+    }, [onDeletePassword]);
+
+    const undoDelete = useCallback(() => {
+        if (pendingTimerRef.current) {
+            clearTimeout(pendingTimerRef.current);
+            pendingTimerRef.current = null;
+        }
+        pendingDeleteRef.current = null;
+        setPendingDelete(null);
+        haptic(10);
+    }, []);
+
     const filteredByGroup = passwords.filter(password => {
+        if (pendingDelete && password.id === pendingDelete.id) return false;
         if (selectedGroupIds.length === 0) return true;
         return selectedGroupIds.some(id => {
             if (id === 'ungrouped') return !password.groupId;
@@ -82,7 +119,7 @@ const MainVault = ({ passwords = [], isLoading = false, onAddPassword, onEditPas
         if (!paginationEnabled || totalPages <= 1) return null;
 
         return (
-            <div className="flex items-center justify-center gap-2 mt-8 pb-12">
+            <div className="flex items-center justify-center gap-1.5 lg:gap-2 mt-4 lg:mt-8 pb-4 lg:pb-12">
                 <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
@@ -108,7 +145,7 @@ const MainVault = ({ passwords = [], isLoading = false, onAddPassword, onEditPas
                             <button
                                 key={page}
                                 onClick={() => setCurrentPage(page)}
-                                className={`w-10 h-10 rounded-lg border text-sm font-medium transition-all ${
+                                className={`w-8 h-8 lg:w-10 lg:h-10 rounded-lg border text-xs lg:text-sm font-medium transition-all ${
                                     currentPage === page
                                         ? 'bg-blue-600 border-blue-600 text-white shadow-md'
                                         : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600'
@@ -183,10 +220,9 @@ const MainVault = ({ passwords = [], isLoading = false, onAddPassword, onEditPas
                             <button
                                 onClick={onAddPassword}
                                 disabled={isLoading}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                className="inline-flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-xl active:bg-blue-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                             >
-                                <PlusIcon className="w-4 h-4" />
-                                <span>{isLoading ? t('common.loading') : t('common.add')}</span>
+                                <PlusIcon className="w-5 h-5" />
                             </button>
                         </div>
                     )}
@@ -203,35 +239,46 @@ const MainVault = ({ passwords = [], isLoading = false, onAddPassword, onEditPas
                         </div>
                     ) : paginatedPasswords.length > 0 ? (
                         <>
-                            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
-                                {paginatedPasswords.map((password) => (
-                                    <div key={password.id} className="relative h-full">
-                                        <PasswordCard
-                                            password={password}
-                                            onEdit={onEditPassword}
-                                            onDelete={handleDelete}
-                                            hideSensitiveButtons={hideSensitiveButtons}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
+                            {isMobile ? (
+                                <MobilePasswordList
+                                    passwords={paginatedPasswords}
+                                    onEdit={onEditPassword}
+                                    onDelete={requestDelete}
+                                    hideSensitiveButtons={hideSensitiveButtons}
+                                    activePassword={activeSheetPassword}
+                                    onPasswordChange={onSheetPasswordChange}
+                                />
+                            ) : (
+                                <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
+                                    {paginatedPasswords.map((password) => (
+                                        <div key={password.id} className="relative h-full">
+                                            <PasswordCard
+                                                password={password}
+                                                onEdit={onEditPassword}
+                                                onDelete={handleDelete}
+                                                hideSensitiveButtons={hideSensitiveButtons}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             {renderPagination()}
                         </>
                     ) : (
-                        <div className="text-center py-12">
-                            <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <PlusIcon className="w-12 h-12 text-gray-400" />
+                        <div className="text-center py-8 lg:py-12">
+                            <div className="w-16 h-16 lg:w-24 lg:h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                                <PlusIcon className="w-8 h-8 lg:w-12 lg:h-12 text-gray-400" />
                             </div>
-                            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                            <h3 className="text-lg lg:text-xl font-semibold text-gray-600 mb-2">
                                 {searchQuery ? t('vault.noResults') : t('vault.noPasswords')}
                             </h3>
-                            <p className="text-gray-500 mb-6">
+                            <p className="text-sm lg:text-base text-gray-500 mb-4 lg:mb-6 px-4">
                                 {searchQuery ? t('vault.noResultsDesc') : t('vault.noPasswordsDesc')}
                             </p>
                             {!searchQuery && (
                                 <button
                                     onClick={onAddPassword}
-                                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 lg:px-6 lg:py-3 bg-blue-600 text-white rounded-xl active:bg-blue-700 lg:hover:bg-blue-700 transition-all shadow-sm lg:shadow-lg font-medium text-sm lg:text-base"
                                 >
                                     <PlusIcon className="w-5 h-5" />
                                     <span>{t('vault.addFirstPassword')}</span>
@@ -250,6 +297,21 @@ const MainVault = ({ passwords = [], isLoading = false, onAddPassword, onEditPas
                 onUpdate={updateGroup}
                 onDelete={deleteGroup}
             />
+
+            {/* 滑删撤销条 */}
+            {pendingDelete && (
+                <div className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-8 z-[70] flex items-center gap-2 bg-gray-900 text-white pl-4 pr-1.5 py-2 rounded-2xl shadow-2xl animate-sheet-up">
+                    <span className="text-sm max-w-[60vw] truncate">
+                        {t('vault.deletedItem', { website: pendingDelete.website || t('common.unnamed') })}
+                    </span>
+                    <button
+                        onClick={undoDelete}
+                        className="text-sm font-bold text-blue-300 px-3 py-1.5 rounded-xl active:bg-white/10 shrink-0"
+                    >
+                        {t('common.undo')}
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

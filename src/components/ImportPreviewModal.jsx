@@ -156,8 +156,8 @@ const ImportPreviewModal = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in safe-area-top safe-area-bottom">
-            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in safe-area-top safe-area-bottom mobile-sheet-parent">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col mobile-sheet">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-gray-200 flex-shrink-0">
                     <div className="flex items-center gap-3">

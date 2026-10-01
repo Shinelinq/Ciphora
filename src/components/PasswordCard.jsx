@@ -13,7 +13,7 @@ import {
     GlobeAltIcon,
     QrCodeIcon,
     XMarkIcon,
-    ArrowTopRightOnSquareIcon
+    ArrowTopRightOnSquareIcon,
 } from '@heroicons/react/24/outline';
 import TOTPDisplay from './TOTPDisplay';
 import CopyButton from './CopyButton';

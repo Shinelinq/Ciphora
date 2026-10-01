@@ -92,7 +92,7 @@ pub async fn process_import_with_resolution(
         final_passwords = import_data.clone();
     } else {
         // update 或 add 模式
-        let mut seen: HashSet<String> = final_passwords.iter().map(|e| entry_key(e)).collect();
+        let mut seen: HashSet<String> = final_passwords.iter().map(entry_key).collect();
 
         for entry in import_data {
             let key = entry_key(&entry);
@@ -283,9 +283,20 @@ let compressed = if share_password_set {
 }
 
 fn entry_key(entry: &PasswordEntry) -> String {
-    let website = password_service::get_string_field(entry, "website").unwrap_or_else(|| "unknown".into());
-    let username = password_service::get_string_field(entry, "username").unwrap_or_else(|| "anonymous".into());
-    format!("{}|{}", website, username)
+    let website = password_service::get_string_field(entry, "website")
+        .unwrap_or_else(|| "unknown".into());
+    let username = password_service::get_string_field(entry, "username")
+        .unwrap_or_else(|| "anonymous".into());
+    // 类型参与身份判定：同一网站/用户名下的密码与 MFA 属于不同条目，不能相互覆盖
+    let kind = password_service::get_string_field(entry, "type")
+        .or_else(|| password_service::get_string_field(entry, "dataType"))
+        .unwrap_or_else(|| "password".into());
+    format!(
+        "{}|{}|{}",
+        website.trim().to_lowercase(),
+        username.trim().to_lowercase(),
+        kind.trim().to_lowercase()
+    )
 }
 
 fn entry_id(entry: &PasswordEntry) -> String {
@@ -307,5 +318,32 @@ fn is_newer(imported: &PasswordEntry, existing: &PasswordEntry) -> bool {
         (Some(i), Some(e)) => i > e,
         (Some(_), None) => true,
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::entry_key;
+    use serde_json::json;
+
+    #[test]
+    fn entry_key_distinguishes_types() {
+        let pw = json!({"website": "GitHub", "username": "alice", "type": "password"});
+        let mfa = json!({"website": "GitHub", "username": "alice", "type": "mfa"});
+        assert_ne!(entry_key(&pw), entry_key(&mfa));
+    }
+
+    #[test]
+    fn entry_key_normalizes_case_and_whitespace() {
+        let a = json!({"website": " GitHub ", "username": "Alice", "type": "password"});
+        let b = json!({"website": "github", "username": " alice ", "type": "password"});
+        assert_eq!(entry_key(&a), entry_key(&b));
+    }
+
+    #[test]
+    fn entry_key_defaults_missing_type_to_password() {
+        let a = json!({"website": "site", "username": "u"});
+        let b = json!({"website": "site", "username": "u", "type": "password"});
+        assert_eq!(entry_key(&a), entry_key(&b));
     }
 }

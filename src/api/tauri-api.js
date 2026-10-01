@@ -7,7 +7,15 @@ import {
   writeFile as writeBinaryFile
 } from '@tauri-apps/plugin-fs';
 import { open as openUrl } from '@tauri-apps/plugin-shell';
-import * as XLSX from 'xlsx/dist/xlsx.full.min.js';
+
+// xlsx 体积较大，仅在导入/导出 Excel/CSV 时按需加载
+let xlsxPromise = null;
+const loadXLSX = () => {
+  if (!xlsxPromise) {
+    xlsxPromise = import('xlsx/dist/xlsx.full.min.js').then((mod) => mod.default || mod);
+  }
+  return xlsxPromise;
+};
 
 // 检测是否在 Tauri 环境中
 const isTauri = typeof window !== 'undefined' && window.__TAURI_INTERNALS__;
@@ -101,7 +109,15 @@ export const tauriAPI = {
   },
 
   async logout() {
-    return await invoke('logout');
+    try {
+      await invoke('logout');
+    } finally {
+      // 清除前端内存中的主密码，避免登出后仍可读取数据
+      if (typeof window !== 'undefined') {
+        window.__masterPassword = '';
+      }
+    }
+    return { success: true };
   },
 
   async changeMasterPassword(oldPassword, newPassword) {
@@ -230,11 +246,13 @@ export const tauriAPI = {
       let data;
 
       if (fileType === 'excel') {
+        const XLSX = await loadXLSX();
         const binary = await readBinaryFile(filePath);
         const workbook = XLSX.read(binary, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
       } else if (fileType === 'text') {
+        const XLSX = await loadXLSX();
         const content = await readTextFile(filePath);
         const workbook = XLSX.read(content, { type: 'string' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -285,6 +303,7 @@ export const tauriAPI = {
   async exportPasswords(filePath, fileType) {
     try {
       const passwords = await this.getPasswords();
+      const XLSX = fileType === 'json' ? null : await loadXLSX();
 
       // 标准化字段顺序
       const orderedPasswords = passwords.map(p => ({
@@ -372,6 +391,7 @@ export const tauriAPI = {
   async generateImportTemplate(templateType, options = {}) {
     try {
       const { sheetName = 'Template', templateDefaultName = 'Ciphora_Template', labels = {} } = options;
+      const XLSX = await loadXLSX();
       const templateData = createTemplateData(labels);
       if (templateType === 'excel') {
         const workbook = XLSX.utils.book_new();
@@ -747,6 +767,31 @@ export const tauriAPI = {
     } catch (error) {
       console.error('获取系统语言失败:', error);
       return navigator.language || 'en-US';
+    }
+  },
+
+  async setAppLanguage(language) {
+    try {
+      return await invoke('set_app_language', { language });
+    } catch (error) {
+      console.error('同步语言到后端失败:', error);
+    }
+  },
+
+  async getBridgeStatus() {
+    try {
+      return await invoke('get_bridge_status');
+    } catch (error) {
+      console.error('获取桥接状态失败:', error);
+      return { running: false, error: null, authorized: false };
+    }
+  },
+
+  async respondBridgeAuth(requestId, allow) {
+    try {
+      return await invoke('respond_bridge_auth', { requestId, allow });
+    } catch (error) {
+      console.error('响应扩展授权失败:', error);
     }
   },
 

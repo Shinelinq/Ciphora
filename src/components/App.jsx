@@ -11,7 +11,9 @@ import ImportPreviewModal from './ImportPreviewModal';
 import SettingsView from './SettingsView';
 import CimbarTransfer from './CimbarTransfer';
 import MobileBottomNav from './MobileBottomNav';
+import MobileTopBar from './MobileTopBar';
 import { useMobile } from '../hooks/useMobile';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +36,8 @@ const App = () => {
     const lastActivityRef = React.useRef(Date.now());
     const [settings, setSettings] = useState(null);
     const [showCimbar, setShowCimbar] = useState(false);
+    const [activeSheetPassword, setActiveSheetPassword] = useState(null);
+    const [bridgeAuthRequest, setBridgeAuthRequest] = useState(null);
     const { isMobile } = useMobile();
 
     useEffect(() => {
@@ -106,7 +110,12 @@ const App = () => {
             setIsAuthenticated(false);
             setCurrentView('login');
             setPasswords([]);
+            setActiveSheetPassword(null);
             autoLockTimerRef.current = null;
+            // 同步清除后端会话密钥，确保浏览器桥接等接口立即失效
+            if (window.api?.logout) {
+                window.api.logout().catch((error) => console.error('自动锁定清理失败:', error));
+            }
         };
 
         const resetAutoLockTimer = () => {
@@ -156,6 +165,41 @@ const App = () => {
         };
     }, [isAuthenticated, settings?.autoLock?.enabled, settings?.autoLock?.timeout]);
 
+    // Android 硬件返回键：优先关闭弹窗 / 返回上一级，仅在根视图时交还系统默认行为
+    useEffect(() => {
+        const hasOverlay = showCimbar || showAddModal || showEditModal || showImportPreview || showPasswordModal || activeSheetPassword;
+        const canNavigateBack = currentView === 'settings' || currentView === 'dashboard';
+        if (!hasOverlay && !canNavigateBack) {
+            return undefined;
+        }
+
+        let unlisten;
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const { onBackButtonPress } = await import('@tauri-apps/api/app');
+                const un = await onBackButtonPress(() => {
+                    if (activeSheetPassword) { setActiveSheetPassword(null); return; }
+                    if (showCimbar) { setShowCimbar(false); return; }
+                    if (showAddModal) { setShowAddModal(false); return; }
+                    if (showEditModal) { setEditingPassword(null); setShowEditModal(false); return; }
+                    if (showImportPreview) { setShowImportPreview(false); setImportPreviewData(null); return; }
+                    if (showPasswordModal) { setShowPasswordModal(false); return; }
+                    if (canNavigateBack) { setCurrentView('main'); }
+                });
+                if (cancelled) { un(); } else { unlisten = un; }
+            } catch (error) {
+                console.warn('注册 Android 返回键处理失败:', error);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+            if (unlisten) unlisten();
+        };
+    }, [showCimbar, showAddModal, showEditModal, showImportPreview, showPasswordModal, activeSheetPassword, currentView]);
+
     // 加载密码数据
     const loadPasswords = useCallback(async () => {
         try {
@@ -191,6 +235,27 @@ const App = () => {
             loadPasswords();
         }
     }, [isAuthenticated, loadPasswords]);
+
+    // 浏览器扩展请求授权：桌面端弹出确认
+    useEffect(() => {
+        let unlisten;
+        let cancelled = false;
+        import('@tauri-apps/api/event')
+            .then(({ listen }) =>
+                listen('bridge-auth-request', (event) => {
+                    setBridgeAuthRequest(event?.payload?.id || '');
+                })
+            )
+            .then((un) => {
+                if (cancelled) un();
+                else unlisten = un;
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+            if (unlisten) unlisten();
+        };
+    }, []);
 
     // 如果还未初始化，显示一个简单的等待界面（通常很快，用户几乎看不到）
     if (currentView === null) {
@@ -231,6 +296,8 @@ const App = () => {
             // 即使后端调用失败，也要清除前端状态
             setIsAuthenticated(false);
             setCurrentView('login');
+        } finally {
+            setActiveSheetPassword(null);
         }
     };
 
@@ -248,6 +315,7 @@ const App = () => {
     };
 
     const handleViewChange = (newView) => {
+        setActiveSheetPassword(null);
         setCurrentView(newView);
     };
 
@@ -697,7 +765,7 @@ const App = () => {
     };
 
     return (
-        <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-inter overflow-hidden relative">
+        <div className="h-dvh min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-inter overflow-hidden relative">
             {currentView === 'setup' && (
                 <SetupView onComplete={handleSetupComplete} />
             )}
@@ -715,6 +783,7 @@ const App = () => {
                             onViewChange={handleViewChange}
                         />
                     )}
+                    {isMobile && <MobileTopBar onLogout={handleLogout} />}
                     <Dashboard
                         onAddPassword={() => handleDashboardAction('addPassword')}
                         onSearch={() => handleDashboardAction('search')}
@@ -746,6 +815,7 @@ const App = () => {
                             onViewChange={handleViewChange}
                         />
                     )}
+                    {isMobile && <MobileTopBar onLogout={handleLogout} />}
                     <MainVault
                         passwords={passwords}
                         isLoading={isLoading}
@@ -755,6 +825,8 @@ const App = () => {
                         onRefresh={loadPasswords}
                         settings={settings}
                         hideSensitiveButtons={settings?.ui?.hideSensitiveButtons || false}
+                        activeSheetPassword={activeSheetPassword}
+                        onSheetPasswordChange={setActiveSheetPassword}
                     />
                     {isMobile && (
                         <MobileBottomNav
@@ -775,6 +847,7 @@ const App = () => {
                             onViewChange={handleViewChange}
                         />
                     )}
+                    {isMobile && <MobileTopBar onLogout={handleLogout} />}
                     <SettingsView
                         onLogout={handleLogout}
                         settings={settings}
@@ -867,6 +940,41 @@ const App = () => {
                     visible={showCimbar}
                 />
             </div>
+
+            {/* 浏览器扩展授权确认 */}
+            {bridgeAuthRequest && (
+                <div className="fixed inset-0 z-[150] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                                <ShieldCheckIcon className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900">{t('bridgeAuth.title')}</h3>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-5">{t('bridgeAuth.desc')}</p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={async () => {
+                                    await window.api.respondBridgeAuth(bridgeAuthRequest, false);
+                                    setBridgeAuthRequest(null);
+                                }}
+                                className="flex-1 h-11 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors"
+                            >
+                                {t('common.cancel')}
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    await window.api.respondBridgeAuth(bridgeAuthRequest, true);
+                                    setBridgeAuthRequest(null);
+                                }}
+                                className="flex-1 h-11 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+                            >
+                                {t('bridgeAuth.allow')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

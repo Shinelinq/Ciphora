@@ -15,7 +15,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.0.7", features = [] }
 
 [dependencies]
-tauri = { version = "2.10.0", features = [] }
+tauri = { version = "2.10.0", features = ["tray-icon", "image-png"] }
 tauri-plugin-fs = "2.5.0"
 tauri-plugin-dialog = "2.7.0"
 tauri-plugin-shell = "2.3.0"
@@ -26,11 +26,13 @@ aes-gcm = "0.10"
 argon2 = "0.5"
 rand = "0.8"
 totp-lite = "2.0"
+data-encoding = "2"
 sha2 = "0.10"
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4", features = ["clock"] }
 tauri-plugin-os = "2.2.0"
 zstd = "0.13"
+zeroize = "1"
 
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
 tauri-plugin-window-state = "2.2.0"
@@ -38,6 +40,18 @@ tauri-plugin-window-state = "2.2.0"
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
+# ── 编译加速 / 体积优化 ──────────────────────────────────────────────
+# dev（含 `tauri ios dev` / `tauri android dev`）：降低调试信息生成，加快编译与链接
+[profile.dev]
+debug = 1
+incremental = true
+
+# release（含 `tauri build`）：限定 codegen-units 并剥离符号，加快链接、减小体积
+[profile.release]
+lto = false
+codegen-units = 16
+strip = true
 
 
 

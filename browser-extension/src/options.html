@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ciphora Autofill — Settings</title>
+    <style>
+      :root { --blue: #2563eb; --border: #e5e7eb; --muted: #6b7280; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: #f8fafc;
+        color: #111827;
+        padding: 32px 16px;
+      }
+      .wrap { max-width: 640px; margin: 0 auto; }
+      h1 { font-size: 20px; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+      h1 img { width: 32px; height: 32px; border-radius: 8px; }
+      .sub { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+      .card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px; }
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 13px;
+        outline: none;
+      }
+      input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+      .row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+      button {
+        padding: 10px 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      button:hover { background: #f3f4f6; }
+      button.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+      button.primary:hover { background: #1d4ed8; }
+      .status { margin-top: 14px; font-size: 13px; }
+      .status.ok { color: #15803d; }
+      .status.warn { color: #b45309; }
+      .status.err { color: #b91c1c; }
+      ol { padding-left: 20px; line-height: 1.9; font-size: 13px; color: #374151; }
+      code { background: #f1f5f9; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+      .note { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.7; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1><img src="../icons/icon-48.png" alt="Ciphora" /> Ciphora Autofill</h1>
+      <div class="sub" data-i18n="options.subtitle">连接本地 Ciphora 桌面应用，安全地自动填充账号、密码与 MFA 验证码。</div>
+
+      <div class="card">
+        <label for="port" data-i18n="options.portLabel">桥接端口</label>
+        <input id="port" type="number" min="1024" max="65535" placeholder="37123" />
+        <div class="note" data-i18n="options.portNote">需与 Ciphora 设置中的「监听端口」一致（默认 37123）。</div>
+
+        <div class="row">
+          <button class="primary" id="saveBtn" data-i18n="options.save">保存并测试</button>
+          <button id="testBtn" data-i18n="options.test">仅测试连接</button>
+        </div>
+
+        <div class="status" id="status"></div>
+      </div>
+
+      <div class="card">
+        <label style="display:flex; align-items:center; gap:8px; margin:0;">
+          <input type="checkbox" id="autoFill" style="width:auto; margin:0;" />
+          <span data-i18n="options.autoFillLabel">登录页按域名自动填充</span>
+        </label>
+        <div class="note" data-i18n="options.autoFillNote">当登录页的域名与某条记录完全匹配且唯一时，自动填入账号密码（需先在弹窗完成授权）。</div>
+
+        <label style="display:flex; align-items:center; gap:8px; margin:16px 0 0;">
+          <input type="checkbox" id="showFloating" style="width:auto; margin:0;" />
+          <span data-i18n="options.floatingLabel">在网页显示悬浮填充按钮</span>
+        </label>
+        <div class="note" data-i18n="options.floatingNote">开启后，访问含登录框的页面时右下角会出现一个悬浮箭头，点击即可快速填充，无需打开扩展弹窗。</div>
+      </div>
+
+      <div class="card">
+        <label style="font-size: 14px;" data-i18n="options.howTitle">如何连接？</label>
+        <ol>
+          <li data-i18n="options.step1">打开 Ciphora 桌面应用。</li>
+          <li data-i18n="options.step2">进入「设置 → 基本设置 → 浏览器扩展桥接」，打开开关。</li>
+          <li data-i18n="options.step3">在本页填写与桌面端一致的「监听端口」，点击「保存并测试」。</li>
+          <li data-i18n="options.step4">点击工具栏上的扩展图标，输入主密码完成授权；库会被一并解锁。</li>
+        </ol>
+        <div class="note" data-i18n="options.note">本扩展不保存任何长期令牌。主密码仅用于在桌面端换取一次短期会话，会话仅存于浏览器内存，关闭浏览器、库锁定或应用重启后需重新授权。桥接仅在 127.0.0.1 本机监听，扩展不会把任何密码上传到互联网。</div>
+      </div>
+    </div>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

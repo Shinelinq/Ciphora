@@ -143,6 +143,7 @@ Master password never stored · Data never leaves your device
 - **Symmetric encryption** — AES-256-GCM provides both confidentiality and integrity. Any tampering with the vault file is detected on next unlock.
 - **Zero-knowledge verification** — Master password is verified against a stored hash only. The original password is never persisted or transmitted in any form.
 - **Memory isolation** — Tauri's sandbox prevents frontend JavaScript from accessing the filesystem, crypto handles, or derived key material. Keys are explicitly zeroed from memory after use.
+- **Browser bridge isolation** — The optional autofill bridge binds to `127.0.0.1` only and is **off by default**. It requires a short-lived, in-memory session obtained by approving a request in the desktop app. There is **no persistent token**, web pages are rejected by an Origin allowlist, and authorization attempts are rate-limited. The master password never enters the browser.
 
 ---
 
@@ -154,12 +155,46 @@ Master password never stored · Data never leaves your device
 | 📡 **Cimbar offline transfer** | Sync your entire vault to another device via camera. No network required, ever.        |
 | 🧩 **Multi-type vault**        | Password, TOTP/MFA, Base64, JSON, Notes — one encrypted store for everything.          |
 | 🔐 **Built-in MFA**            | Native TOTP generation and verification. No third-party authenticator app needed.      |
+| 🖥️ **Tray & background**      | Minimize or close to the system tray, restore on double-click, quit from the tray menu. |
+| 🧩 **Browser extension**       | Companion MV3 extension: domain-matched autofill, floating fill button, and TOTP — over a session-authorized, loopback-only bridge. |
 | 📂 **Group management**        | Custom groups with icons. Batch move, reorder, and organize at scale.                  |
 | 📤 **Import / Export**         | JSON and CSV, compatible with 1Password, Bitwarden, KeePass, and others.               |
 | 📱 **All platforms**           | Windows, macOS, Linux, Android, iOS — one codebase via Tauri.                          |
 | 🌐 **i18n**                    | Full English and Chinese, auto-detects system language. More languages welcome via PR. |
 | ⚡ **High performance**        | Binary serialization. Millisecond unlocks and searches on 10,000+ records.             |
 | 🪶 **Ultra lightweight**       | Installer under 10 MB. Tauri, not Electron — your RAM will thank you.                  |
+
+---
+
+## 🧩 Browser Extension (Autofill)
+
+A companion **Manifest V3** extension (Chrome / Edge / Brave) fills logins and TOTP codes from your local vault. Passwords never leave your machine — and never enter the browser.
+
+**What it does**
+
+- 🔎 **Domain-matched autofill** — on a login page, if the domain exactly matches a **single** saved entry, credentials are filled automatically.
+- 🪟 **Floating fill button** — an optional in-page button for one-click filling (off by default).
+- 🔐 **TOTP autofill** — fills the current 6-digit MFA code.
+- 🔔 Site-aware search, one-click copy, and a built-in password generator.
+
+**Setup**
+
+1. In the desktop app, open **Settings → General → Browser extension bridge** and turn it on (default **off**). Note the listen port (default `37123`).
+2. Load the extension:
+   - **From source** — `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select the `browser-extension/` folder.
+   - **From Releases** — download `ciphora-extension-*.zip`, unzip it, then load unpacked.
+3. Open the extension **Options** and fill in the same port.
+4. Click the extension icon → **Request authorization** → the desktop app comes to the front → click **Allow**.
+5. Optionally enable **Auto-fill login pages by domain** and **Show a floating fill button** in Options.
+
+**Security**
+
+- The bridge binds to `127.0.0.1` only and is **off by default**.
+- **No persistent token.** Authorization yields a short-lived session (15 min, sliding) kept **only in browser memory** — re-authorize after closing the browser, locking the vault, or restarting the app.
+- **Your master password never enters the browser.** Authorization is approved in the desktop app.
+- Requests from web pages are rejected by an **Origin allowlist**; failed authorizations are **rate-limited**.
+- Data endpoints return `401` whenever the vault is locked.
+- Domain autofill uses an **exact registrable-domain** match and only when a single entry matches — never fuzzy matching.
 
 ---
 
@@ -198,7 +233,7 @@ Ciphora integrates the [Cimbar (Color Icon Matrix Barcode)](https://github.com/s
 | Crypto libs   | `aes-gcm`, `argon2`, `sha2`, `rand`                 |
 | Frontend      | React 18, Vite 7, Tailwind CSS 4, Heroicons, Lucide |
 | i18n          | i18next (UI + Rust backend dual-stack)              |
-| MFA           | TOTP via `speakeasy` / `totp-lite`                  |
+| MFA           | TOTP via `totp-lite` (Base32)                       |
 | Mobile        | Kotlin (Android), Swift (iOS) via Tauri Bridge      |
 
 ---
@@ -217,6 +252,8 @@ Get the installer for your platform from [Releases](https://github.com/loganchef
 | macOS Intel         | `Ciphora_*_x64.dmg`        |
 | Linux               | `Ciphora_*_amd64.AppImage` |
 | Android             | `Ciphora_*.apk`            |
+| iOS                 | `Ciphora_*.ipa`            |
+| Browser extension   | `ciphora-extension-*.zip`  |
 
 ### Build from Source
 
@@ -233,11 +270,17 @@ npm run tauri:build         # production build
 
 # Android
 npm run tauri:android:init
+npm run mobile:permissions    # inject camera permission
 npm run tauri:android:build
 
 # iOS (macOS + Xcode required)
 npm run tauri:ios:init
-npm run tauri:ios:build
+npm run mobile:permissions    # inject camera permission
+npm run tauri:ios:dev        # run on simulator (debug, fastest)
+npm run tauri:ios:build      # production build
+
+# Browser extension — no build step; load the folder unpacked
+# chrome://extensions → Developer mode → Load unpacked → browser-extension/
 ```
 
 ---
@@ -246,7 +289,7 @@ npm run tauri:ios:build
 
 Planned features and directions. Watch Releases to follow progress.
 
-- [ ] Browser extension for autofill
+- [x] Browser extension for autofill (early preview in `browser-extension/`)
 - [ ] Yubikey / hardware key support
 - [ ] Vault history and non-destructive edits
 - [ ] Password-protected encrypted export (ZIP)

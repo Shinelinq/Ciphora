@@ -1,25 +1,44 @@
 import { useState, useEffect } from 'react';
+import { isMobilePlatform, PLATFORM_EVENT } from '../lib/platform';
 
 export function useMobile() {
-  const [isMobile, setIsMobile] = useState(false);
+  const initialMobile = typeof window !== 'undefined' && (
+    isMobilePlatform() ||
+    window.innerWidth < 768 ||
+    /Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(navigator.userAgent || '')
+  );
+  const [isMobile, setIsMobile] = useState(initialMobile);
   const [isTablet, setIsTablet] = useState(false);
-  const [orientation, setOrientation] = useState('portrait');
+  const [orientation, setOrientation] = useState(() => (
+    typeof window !== 'undefined' && window.innerWidth > window.innerHeight ? 'landscape' : 'portrait'
+  ));
 
   useEffect(() => {
     const checkDevice = () => {
       const width = window.innerWidth;
-      setIsMobile(width < 768);
-      setIsTablet(width >= 768 && width < 1024);
+      const ua = navigator.userAgent || '';
+      // 真实移动设备（含横屏）始终使用移动布局；同时保留宽度断点兼容窄窗口
+      const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(ua);
+      const mobilePlatform = isMobilePlatform();
+      const mobile = mobilePlatform || width < 768 || isMobileUA;
+      setIsMobile(mobile);
+      setIsTablet(!mobilePlatform && !isMobileUA && width >= 768 && width < 1024);
       setOrientation(width > window.innerHeight ? 'landscape' : 'portrait');
+      // 供 CSS 使用：真实移动设备（含横屏）始终采用移动布局
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.toggle('ciphora-mobile', mobile);
+      }
     };
 
     checkDevice();
     window.addEventListener('resize', checkDevice);
     window.addEventListener('orientationchange', checkDevice);
+    window.addEventListener(PLATFORM_EVENT, checkDevice);
 
     return () => {
       window.removeEventListener('resize', checkDevice);
       window.removeEventListener('orientationchange', checkDevice);
+      window.removeEventListener(PLATFORM_EVENT, checkDevice);
     };
   }, []);
 

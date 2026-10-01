@@ -154,7 +154,7 @@ const LoginView = ({ onSuccess }) => {
 
     return (
         <>
-            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-hidden">
+            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-y-auto safe-area-top safe-area-bottom">
                 <div className="flex flex-1 flex-col justify-center px-4 py-10 lg:px-6">
                     <div className="sm:mx-auto sm:w-full sm:max-w-sm">
                         <h2 className="text-center text-xl font-semibold text-gray-900">

@@ -3,6 +3,7 @@
     "add": "Add",
     "edit": "Edit",
     "delete": "Delete",
+    "undo": "Undo",
     "cancel": "Cancel",
     "save": "Save",
     "confirm": "Confirm",
@@ -24,6 +25,7 @@
     "deleteSuccess": "Delete successful",
     "saving": "Saving...",
     "unknown": "Unknown",
+    "moreInfo": "More info",
     "templateDownloadSuccess": "Template downloaded successfully",
     "fileTypes": {
       "excel": "Excel File",
@@ -138,6 +140,7 @@
   },
   "vault": {
     "deleteConfirm": "Are you sure you want to delete {{website}}? This action cannot be undone.",
+    "deletedItem": "Deleted “{{website}}”",
     "noResults": "No results found",
     "noResultsDesc": "No entries matched your search criteria.",
     "noPasswords": "Vault is empty",
@@ -468,6 +471,7 @@
   "header": {
     "vault": "Vault",
     "dashboard": "Dashboard",
+    "transfer": "Transfer",
     "logout": "Logout"
   },
   "dashboard": {
@@ -565,6 +569,28 @@
         "custom": "Custom Charset",
         "customPlaceholder": "Leave empty for default"
       },
+      "tray": {
+        "minimizeToTray": {
+          "name": "Minimize to Tray",
+          "description": "Hide to the system tray instead of the taskbar when minimized"
+        },
+        "closeToTray": {
+          "name": "Close to Tray",
+          "description": "Keep running in the background and hide to the tray when the window is closed"
+        },
+        "hint": "Double-click the tray icon to restore the window. Choose \"Quit\" from the tray menu to exit completely."
+      },
+      "browserBridge": {
+        "name": "Browser Extension Bridge",
+        "description": "Allow the companion browser extension to read and autofill passwords locally (disabled by default, binds to 127.0.0.1 only)",
+        "port": "Listen Port",
+        "hint": "Your master password never leaves the desktop app: clicking authorize in the extension pops a confirmation here. Re-authorize after locking or restarting the app.",
+        "authorized": "Extension authorized",
+        "notAuthorized": "Extension not authorized",
+        "running": "Running · 127.0.0.1:{{port}}",
+        "starting": "Starting…",
+        "startFailed": "Failed to start: {{error}}"
+      },
       "cardOrder": {
         "name": "Card Sorting Mode",
         "description": "Set the default display order for cards",
@@ -645,5 +671,10 @@
         "textMismatch": "Confirmation text mismatch, operation cancelled"
       }
     }
+  },
+  "bridgeAuth": {
+    "title": "Browser extension wants to connect",
+    "desc": "The Ciphora browser extension is requesting access to your local vault. Only choose \"Allow\" if you started this.",
+    "allow": "Allow"
   }
 }

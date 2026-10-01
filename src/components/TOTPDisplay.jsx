@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { KeyIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import CopyButton from './CopyButton';
+import { copyToClipboard as copyText } from '../lib/utils';
 
-const TOTPDisplay = ({ secret, issuer = 'Ciphora', accountName = 'Account' }) => {
+const TOTPDisplay = ({ secret, issuer = 'Ciphora', accountName = 'Account', compact = false }) => {
     const [totp, setTotp] = useState('');
     const [nextTotp, setNextTotp] = useState('');
     const [timeLeft, setTimeLeft] = useState(30);
@@ -95,12 +96,10 @@ const TOTPDisplay = ({ secret, issuer = 'Ciphora', accountName = 'Account' }) =>
 
     // 复制 TOTP 码
     const copyTOTP = async () => {
-        try {
-            await navigator.clipboard.writeText(totp);
+        const ok = await copyText(totp);
+        if (ok) {
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);
-        } catch (err) {
-            console.error('复制失败:', err);
         }
     };
 
@@ -108,6 +107,35 @@ const TOTPDisplay = ({ secret, issuer = 'Ciphora', accountName = 'Account' }) =>
         return (
             <div className="text-center py-4 text-gray-500">
                 未配置 MFA 密钥
+            </div>
+        );
+    }
+
+    // 移动端精简模式：验证码 + 倒计时，点击整行复制
+    if (compact) {
+        return (
+            <div className="bg-green-50 border border-green-100 rounded-xl overflow-hidden">
+                <button
+                    type="button"
+                    onClick={copyTOTP}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 active:bg-green-100/60 transition-colors"
+                    title="点击复制验证码"
+                >
+                    <KeyIcon className="w-4 h-4 text-green-600 shrink-0" />
+                    <span className="font-mono text-xl font-bold tracking-[0.2em] text-green-700">
+                        {isLoading ? '...' : totp}
+                    </span>
+                    <span className="flex-1" />
+                    <span className={`text-xs font-medium ${isCopied ? 'text-green-600' : 'text-gray-400'}`}>
+                        {isCopied ? '已复制' : `${timeLeft}s`}
+                    </span>
+                </button>
+                <div className="h-0.5 bg-green-100">
+                    <div
+                        className="h-full bg-green-500 transition-all duration-1000 ease-out"
+                        style={{ width: `${(timeLeft / 30) * 100}%` }}
+                    />
+                </div>
             </div>
         );
     }

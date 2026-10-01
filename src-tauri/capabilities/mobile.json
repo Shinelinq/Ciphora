@@ -6,26 +6,41 @@
   "permissions": [
     "core:default",
     "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
     "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
     "shell:default",
+    "shell:allow-open",
     "os:default",
     {
       "identifier": "fs:allow-app-read",
       "allow": [
         { "path": "$APPDATA/*" },
-        { "path": "$APPDATA/**" }
+        { "path": "$APPDATA/**" },
+        { "path": "$DOWNLOAD/*" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/*" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$HOME/*" },
+        { "path": "$HOME/**" },
+        { "path": "**" }
       ]
     },
     {
       "identifier": "fs:allow-app-write",
       "allow": [
         { "path": "$APPDATA/*" },
-        { "path": "$APPDATA/**" }
+        { "path": "$APPDATA/**" },
+        { "path": "$DOWNLOAD/*" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/*" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "**" }
       ]
     }
   ]
 }
-
-
-
-

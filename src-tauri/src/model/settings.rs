@@ -110,7 +110,7 @@ impl Default for PaginationSettings {
 }
 
 /// 用途: MFA 配置; 输入: JSON; 输出: 结构体; 必要性: 控制二次验证。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct MfaSettings {
     #[serde(default = "default_false")]
@@ -119,16 +119,6 @@ pub struct MfaSettings {
     pub secret: Option<String>,
     #[serde(default)]
     pub backup_codes: Vec<String>,
-}
-
-impl Default for MfaSettings {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            secret: None,
-            backup_codes: Vec::new(),
-        }
-    }
 }
 
 /// 用途: 导入导出配置; 输入: JSON; 输出: 结构体; 必要性: 控制备份策略。
@@ -153,8 +143,38 @@ impl Default for ImportExportSettings {
     }
 }
 
-/// 用途: 汇总所有设置项; 输入: JSON; 输出: 配置对象; 必要性: 各模块共享统一结构。
+/// 用途: 系统托盘配置; 输入: JSON; 输出: 结构体; 必要性: 控制关闭/最小化时的后台驻留行为。
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TraySettings {
+    #[serde(default = "default_false")]
+    pub minimize_to_tray: bool,
+    #[serde(default = "default_false")]
+    pub close_to_tray: bool,
+}
+
+/// 用途: 浏览器扩展桥接配置; 输入: JSON; 输出: 结构体;
+///       必要性: 控制本地回环桥接是否开启与监听端口（不再持久化令牌，改用短期会话授权）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserBridgeSettings {
+    #[serde(default = "default_false")]
+    pub enabled: bool,
+    #[serde(default = "default_bridge_port")]
+    pub port: u16,
+}
+
+impl Default for BrowserBridgeSettings {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            port: default_bridge_port(),
+        }
+    }
+}
+
+/// 用途: 汇总所有设置项; 输入: JSON; 输出: 配置对象; 必要性: 各模块共享统一结构。
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     #[serde(default)]
@@ -167,18 +187,10 @@ pub struct AppSettings {
     pub mfa: MfaSettings,
     #[serde(default)]
     pub import_export: ImportExportSettings,
-}
-
-impl Default for AppSettings {
-    fn default() -> Self {
-        Self {
-            auto_lock: AutoLockSettings::default(),
-            password_generator: PasswordGeneratorSettings::default(),
-            ui: UiSettings::default(),
-            mfa: MfaSettings::default(),
-            import_export: ImportExportSettings::default(),
-        }
-    }
+    #[serde(default)]
+    pub tray: TraySettings,
+    #[serde(default)]
+    pub browser_bridge: BrowserBridgeSettings,
 }
 
 // --- Default value helpers for serde ---
@@ -190,3 +202,4 @@ fn default_theme() -> String { "system".to_string() }
 fn default_card_order() -> String { "usage".to_string() }
 fn default_page_size() -> u32 { 20 }
 fn default_backup_interval() -> u64 { 24 * 60 * 60 * 1000 }
+fn default_bridge_port() -> u16 { 37123 }

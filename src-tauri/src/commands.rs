@@ -320,7 +320,7 @@ pub async fn generate_password(
     crypto::generate_random_password(length, include_uppercase, include_numbers, include_symbols)
 }
 
-/// 用途: 生成 MFA 密钥; 输入: 无; 输出: Base64; 必要性: 开启 MFA 时的后端支持。
+/// 用途: 生成 MFA 密钥; 输入: 无; 输出: Base32 密钥; 必要性: 开启 MFA 时的后端支持。
 #[tauri::command]
 pub async fn generate_mfa_secret() -> Result<String, String> {
     mfa::generate_secret()
@@ -386,12 +386,16 @@ pub async fn import_data(
     }
 }
 
-/// 用途: 返回应用信息; 输入: 无; 输出: JSON; 必要性: 前端展示版本等信息。
+/// 用途: 返回应用信息; 输入: 无; 输出: JSON; 必要性: 前端展示版本并做平台能力适配。
 #[tauri::command]
 pub async fn get_app_info() -> Result<serde_json::Value, String> {
+    let platform = tauri_plugin_os::platform();
     Ok(serde_json::json!({
         "version": env!("CARGO_PKG_VERSION"),
         "name": env!("CARGO_PKG_NAME"),
+        "platform": platform,
+        "family": tauri_plugin_os::family(),
+        "isMobile": platform == "android" || platform == "ios",
     }))
 }
 
@@ -399,6 +403,52 @@ pub async fn get_app_info() -> Result<serde_json::Value, String> {
 #[tauri::command]
 pub async fn get_system_locale() -> Result<String, String> {
     Ok(tauri_plugin_os::locale().unwrap_or_else(|| "en-US".to_string()))
+}
+
+/// 用途: 同步当前界面语言到后端; 输入: 语言标签; 输出: ();
+///       必要性: 语言切换后重建本地化的系统托盘菜单。
+#[tauri::command]
+pub fn set_app_language(app: tauri::AppHandle, language: String) -> Result<(), String> {
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        crate::service::tray::set_tray_language(&app, &language);
+    }
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    {
+        let _ = (&app, &language);
+    }
+    Ok(())
+}
+
+/// 用途: 查询浏览器扩展桥接的实际监听与授权状态; 输入: AppState; 输出: { running, error, authorized }。
+#[tauri::command]
+pub fn get_bridge_status(state: tauri::State<'_, AppState>) -> serde_json::Value {
+    let running = *state.bridge_running.lock().unwrap();
+    let error = state.bridge_last_error.lock().unwrap().clone();
+    let authorized = state
+        .bridge_session
+        .lock()
+        .unwrap()
+        .as_ref()
+        .map(|session| session.expires_at > std::time::Instant::now())
+        .unwrap_or(false);
+    serde_json::json!({ "running": running, "error": error, "authorized": authorized })
+}
+
+/// 用途: 响应用户对扩展授权请求的确认; 输入: 请求 ID 与是否允许; 输出: ()。
+#[tauri::command]
+pub fn respond_bridge_auth(
+    state: tauri::State<'_, AppState>,
+    request_id: String,
+    allow: bool,
+) -> Result<(), String> {
+    let mut guard = state.bridge_auth_request.lock().unwrap();
+    if let Some(req) = guard.as_mut() {
+        if req.id == request_id {
+            req.decision = Some(allow);
+        }
+    }
+    Ok(())
 }
 
 // ==================== 分组相关 ====================

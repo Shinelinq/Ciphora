@@ -213,27 +213,27 @@ export default function CimbarTransfer({ onClose, onRefresh, passwords = [], vis
                 </div>
             )}
 
-            <div className="flex items-center justify-between px-8 py-4 border-b border-gray-100 bg-white shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100"><QrCode className="w-5 h-5 text-white" /></div>
-                    <div>
-                        <h2 className="text-lg font-bold leading-tight">{t("cimbar.title")}</h2>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider italic">{t("cimbar.secureOfflineTransfer")}</p>
+            <div className="flex items-center justify-between gap-2 px-4 lg:px-8 py-3 lg:py-4 border-b border-gray-100 bg-white shrink-0">
+                <div className="flex items-center gap-3 lg:gap-4 min-w-0">
+                    <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100 shrink-0"><QrCode className="w-5 h-5 text-white" /></div>
+                    <div className="min-w-0">
+                        <h2 className="text-base lg:text-lg font-bold leading-tight truncate">{t("cimbar.title")}</h2>
+                        <p className="hidden sm:block text-[10px] text-gray-400 font-bold uppercase tracking-wider italic truncate">{t("cimbar.secureOfflineTransfer")}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 lg:gap-6 shrink-0">
                     <div className="bg-gray-100 p-1 rounded-xl flex items-center">
-                        <button onClick={() => setMode("generate")} className={cn("px-6 py-1.5 text-xs font-bold rounded-lg transition-all", mode === "generate" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}>{t("actions.generate")}</button>
-                        <button onClick={() => setMode("decode")} className={cn("px-6 py-1.5 text-xs font-bold rounded-lg transition-all", mode === "decode" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}>{t("cimbar.decode")}</button>
+                        <button onClick={() => setMode("generate")} className={cn("px-3 lg:px-6 py-1.5 text-xs font-bold rounded-lg transition-all", mode === "generate" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}>{t("actions.generate")}</button>
+                        <button onClick={() => setMode("decode")} className={cn("px-3 lg:px-6 py-1.5 text-xs font-bold rounded-lg transition-all", mode === "decode" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}>{t("cimbar.decode")}</button>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-red-50 hover:text-red-500 text-gray-400 rounded-xl transition-all"><X className="w-5 h-5" /></button>
                 </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden relative">
-                <div className={cn("flex-1 flex transition-opacity duration-300", mode === "generate" ? "opacity-100 visible" : "opacity-0 invisible absolute inset-0")}>
-                    <div className="w-[360px] border-r border-gray-100 flex flex-col bg-white shrink-0">
-                        <div className="p-6 space-y-8 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
+            <div className="flex-1 flex overflow-y-auto lg:overflow-hidden relative">
+                <div className={cn("flex-1 flex flex-col lg:flex-row transition-opacity duration-300", mode === "generate" ? "opacity-100 visible" : "opacity-0 invisible absolute inset-0")}>
+                    <div className="order-2 lg:order-1 w-full lg:w-[360px] border-t lg:border-t-0 lg:border-r border-gray-100 flex flex-col bg-white shrink-0">
+                        <div className="p-4 lg:p-6 space-y-6 lg:space-y-8 lg:flex-1 lg:overflow-y-auto lg:min-h-0 custom-scrollbar">
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-blue-600" /><h3 className="text-[10px] font-black uppercase tracking-widest">Security</h3></div>
                                 <div className="grid grid-cols-3 gap-1 p-1 bg-gray-50 rounded-lg">
@@ -278,15 +278,15 @@ export default function CimbarTransfer({ onClose, onRefresh, passwords = [], vis
                             </div>
                         </div>
                     </div>
-                    <div className="flex-1 bg-white flex flex-col items-center justify-center relative overflow-hidden">
-                        <div className="w-full max-w-[560px] aspect-square flex items-center justify-center bg-white relative group border border-gray-100 shadow-sm rounded-2xl overflow-hidden transition-all duration-500">
+                    <div className="order-1 lg:order-2 w-full lg:flex-1 min-h-[42vh] lg:min-h-0 bg-white flex flex-col items-center justify-center relative overflow-hidden py-4">
+                        <div className="w-full max-w-[min(560px,88vw)] aspect-square flex items-center justify-center bg-white relative group border border-gray-100 shadow-sm rounded-2xl overflow-hidden transition-all duration-500">
                             <CimbarQRCode key={`normal-${refreshKey}`} data={payloadData} filename={payloadFile?.name} className="w-full h-full" visible={visible && mode === "generate"} densityMode={densityMode} />
                             {payloadData && <button onClick={() => setIsZoomed(true)} className="absolute -bottom-2 -right-2 p-4 bg-gray-900 text-white rounded-2xl shadow-2xl transition-all opacity-0 group-hover:opacity-100 z-30 flex items-center gap-2"><Maximize2 className="w-5 h-5" /><span className="text-[10px] font-black uppercase">Zoom</span></button>}
                         </div>
                     </div>
                 </div>
-                <div className={cn("flex-1 flex bg-white transition-opacity duration-300 z-40", mode === "decode" ? "opacity-100 visible" : "opacity-0 invisible absolute inset-0")}>
-                    <div className="flex-1 flex flex-col p-8 border-r border-gray-50">
+                <div className={cn("flex-1 flex flex-col bg-white transition-opacity duration-300 z-40", mode === "decode" ? "opacity-100 visible" : "opacity-0 invisible absolute inset-0")}>
+                    <div className="flex-1 flex flex-col p-4 lg:p-8 lg:border-r border-gray-50">
                         <div className="flex-1 min-h-0 bg-gray-50 rounded-3xl overflow-hidden border border-gray-100 relative shadow-inner">
                             {mode === "decode" && <CimbarDecoder onDecoded={handleDecoded} onError={(err) => { setMessage(err.message); setMessageType("error"); }} />}
                         </div>

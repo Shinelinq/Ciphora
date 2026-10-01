@@ -21,11 +21,19 @@ const LanguageSwitcher = () => {
   }, [open]);
 
   const changeLanguage = (code) => {
+    try {
+      // 记录为用户显式选择，之后不再被系统语言覆盖
+      localStorage.setItem('i18nextLng', code);
+      localStorage.setItem('ciphora.langExplicit', '1');
+    } catch {
+      // 忽略：localStorage 不可用
+    }
     i18n.changeLanguage(code);
     setOpen(false);
   };
 
-  const currentLang = languages.find(lang => lang.code === i18n.language) || languages[0];
+  const activeLang = i18n.resolvedLanguage || i18n.language;
+  const currentLang = languages.find(lang => lang.code === activeLang) || languages[0];
 
   return (
     <div className="relative" ref={ref}>
@@ -41,7 +49,7 @@ const LanguageSwitcher = () => {
       {open && (
         <div className="absolute top-full right-0 mt-2 z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 min-w-[160px]">
           {languages.map(lang => {
-            const active = i18n.language === lang.code;
+            const active = activeLang === lang.code;
             return (
               <button
                 key={lang.code}

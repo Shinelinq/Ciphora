@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { CheckCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { copyToClipboard as copyText } from '../lib/utils';
 
 const CopyButton = ({ text, label, className = "", onCopy }) => {
     const [copied, setCopied] = useState(false);
 
     const copyToClipboard = async () => {
-        try {
-            await navigator.clipboard.writeText(text);
+        const ok = await copyText(text);
+        if (ok) {
             setCopied(true);
             onCopy?.();
             setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
+        } else {
+            console.error('Failed to copy text');
         }
     };
 

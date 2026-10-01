@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ciphora Autofill</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="brand">
+          <img src="../icons/icon-48.png" alt="Ciphora" />
+          <div>
+            <div class="brand-name">Ciphora</div>
+            <div class="brand-status" id="status" data-i18n="status.connecting">正在连接…</div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn hidden" id="lockBtn" data-i18n-title="action.lock" title="退出授权">⏻</button>
+          <button class="icon-btn" id="openOptions" data-i18n-title="action.settings" title="设置">⚙</button>
+        </div>
+      </header>
+
+      <button class="retry hidden" id="retryBtn" data-i18n="action.retry">重试连接</button>
+
+      <!-- 未检测到桌面应用 -->
+      <section class="onboard hidden" id="onboardBox">
+        <div class="onboard-title" data-i18n="onboard.title">未检测到 Ciphora 桌面应用</div>
+        <p class="onboard-desc" data-i18n="onboard.desc">浏览器扩展需要本地运行的 Ciphora 主程序才能读取密码。</p>
+        <p class="onboard-desc" data-i18n="onboard.installed">已安装？请打开 Ciphora，并在「设置 → 浏览器扩展桥接」中开启服务（默认关闭）。</p>
+        <a class="primary block link-btn" id="downloadBtn" href="https://github.com/loganchef/Ciphora/releases" target="_blank" rel="noopener" data-i18n="onboard.download">下载 Ciphora</a>
+      </section>
+
+      <div class="error hidden" id="errorBox"></div>
+
+      <!-- 授权界面 -->
+      <section class="unlock hidden" id="unlockBox">
+        <div class="unlock-title" data-i18n="unlock.title">在 Ciphora 中授权</div>
+        <p class="unlock-desc" data-i18n="unlock.desc">点击下方按钮，Ciphora 桌面应用会弹到前台，请在那里点击「允许」完成授权。</p>
+        <button class="primary block" id="authorizeBtn" data-i18n="unlock.button">请求授权</button>
+        <div class="unlock-tip" data-i18n="unlock.tip">请先在桌面应用解锁密码库。会话仅存于浏览器内存，过期后需重新授权。</div>
+      </section>
+
+      <!-- 主界面 -->
+      <div id="mainBox" class="hidden">
+        <div class="search">
+          <input id="searchInput" type="search" data-i18n-placeholder="search.placeholder" placeholder="搜索网站 / 用户名…" autocomplete="off" />
+        </div>
+
+        <ul class="entry-list" id="entryList"></ul>
+
+        <section class="detail hidden" id="detail">
+          <div class="detail-title" id="detailTitle"></div>
+          <div class="detail-username" id="detailUsername"></div>
+
+          <div class="row">
+            <button class="primary" id="fillBtn" data-i18n="detail.fill">填充当前页面</button>
+          </div>
+          <div class="row">
+            <button id="copyUserBtn" data-i18n="detail.copyUser">复制用户名</button>
+            <button id="copyPassBtn" data-i18n="detail.copyPass">复制密码</button>
+          </div>
+
+          <div class="totp hidden" id="totpBox">
+            <div class="totp-code" id="totpCode">------</div>
+            <div class="totp-progress"><span id="totpBar"></span></div>
+            <div class="row">
+              <button id="copyTotpBtn" data-i18n="detail.copyTotp">复制验证码</button>
+              <button id="fillTotpBtn" data-i18n="detail.fillTotp">填充验证码</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="generator">
+          <div class="generator-head">
+            <span data-i18n="generator.title">密码生成器</span>
+            <button class="link" id="genBtn" data-i18n="generator.generate">生成</button>
+          </div>
+          <div class="generator-row">
+            <input id="genOutput" type="text" readonly data-i18n-placeholder="generator.placeholder" placeholder="点击「生成」" />
+            <button id="genCopyBtn" data-i18n="generator.copy">复制</button>
+          </div>
+        </section>
+      </div>
+
+      <footer class="footer">
+        <span data-i18n="footer.note">数据来自本地 Ciphora 应用，不会上传到网络</span>
+      </footer>
+
+      <div class="toast hidden" id="toast"></div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

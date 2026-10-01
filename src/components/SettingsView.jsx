@@ -12,6 +12,8 @@ import {
 } from '@heroicons/react/24/outline';
 import ConfirmInputModal from './ConfirmInputModal';
 import CustomDialog from './CustomDialog';
+import { useMobile } from '../hooks/useMobile';
+import { copyToClipboard } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
 
 const defaultSettings = {
@@ -46,6 +48,14 @@ const defaultSettings = {
         secret: null,
         backupCodes: []
     },
+    tray: {
+        minimizeToTray: false,
+        closeToTray: false
+    },
+    browserBridge: {
+        enabled: false,
+        port: 37123
+    },
     importExport: {
         autoBackup: true,
         backupInterval: 86400000,
@@ -55,6 +65,7 @@ const defaultSettings = {
 
 const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate }) => {
     const { t, i18n } = useTranslation();
+    const { isMobile } = useMobile();
     const [activeSection, setActiveSection] = useState('general');
     const [appInfo, setAppInfo] = useState({ version: '2.0.10', name: 'Ciphora' });
 
@@ -91,6 +102,7 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
 
     // 设置状态
     const [settings, setSettings] = useState(initialSettings || defaultSettings);
+    const [bridgeStatus, setBridgeStatus] = useState(null);
 
     useEffect(() => {
         if (initialSettings) {
@@ -99,6 +111,25 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
             loadSettings();
         }
     }, [initialSettings]);
+
+    // 桥接开启时轮询真实监听状态
+    useEffect(() => {
+        if (!settings?.browserBridge?.enabled) {
+            setBridgeStatus(null);
+            return undefined;
+        }
+        let cancelled = false;
+        const check = async () => {
+            const status = await window.api.getBridgeStatus?.();
+            if (!cancelled) setBridgeStatus(status);
+        };
+        check();
+        const timer = setInterval(check, 3000);
+        return () => {
+            cancelled = true;
+            clearInterval(timer);
+        };
+    }, [settings?.browserBridge?.enabled, settings?.browserBridge?.port]);
 
     // 监听设置变化，当隐藏敏感按钮时自动切换区域
     useEffect(() => {
@@ -317,9 +348,9 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
 
 
     const renderGeneralSettings = () => (
-        <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="space-y-4 lg:space-y-6">
+            <div className="bg-white rounded-xl lg:rounded-2xl shadow-sm lg:shadow-lg p-4 lg:p-6">
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4 flex items-center gap-2">
                     <CogIcon className="w-5 h-5" />
                     {t('settings.sections.general')}
                 </h3>
@@ -426,6 +457,121 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
                                 <option value={60}>{t('settings.general.autoLockTimeout.1hour')}</option>
                                 <option value={0}>{t('settings.general.autoLockTimeout.never')}</option>
                             </select>
+                        </div>
+                    )}
+
+                    {/* 系统托盘设置（仅桌面端） */}
+                    {!isMobile && (
+                        <>
+                            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                                <div>
+                                    <h4 className="font-medium text-gray-900">{t('settings.general.tray.minimizeToTray.name')}</h4>
+                                    <p className="text-sm text-gray-500">{t('settings.general.tray.minimizeToTray.description')}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleNestedSettingChange('tray', 'minimizeToTray', !(settings.tray?.minimizeToTray))}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.tray?.minimizeToTray ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.tray?.minimizeToTray ? 'translate-x-6' : 'translate-x-0.5'}`}
+                                    />
+                                </button>
+                            </div>
+
+                            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                                <div>
+                                    <h4 className="font-medium text-gray-900">{t('settings.general.tray.closeToTray.name')}</h4>
+                                    <p className="text-sm text-gray-500">{t('settings.general.tray.closeToTray.description')}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleNestedSettingChange('tray', 'closeToTray', !(settings.tray?.closeToTray))}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.tray?.closeToTray ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.tray?.closeToTray ? 'translate-x-6' : 'translate-x-0.5'}`}
+                                    />
+                                </button>
+                            </div>
+
+                            {(settings.tray?.minimizeToTray || settings.tray?.closeToTray) && (
+                                <div className="flex items-start gap-2 py-3 border-b border-gray-100 text-sm text-gray-500">
+                                    <ExclamationTriangleIcon className="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" />
+                                    <p>{t('settings.general.tray.hint')}</p>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {/* 浏览器扩展桥接（仅桌面端） */}
+                    {!isMobile && (
+                        <div className="py-3 border-b border-gray-100">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="font-medium text-gray-900">{t('settings.general.browserBridge.name')}</h4>
+                                    <p className="text-sm text-gray-500">{t('settings.general.browserBridge.description')}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleNestedSettingChange('browserBridge', 'enabled', !(settings.browserBridge?.enabled))}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.browserBridge?.enabled ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.browserBridge?.enabled ? 'translate-x-6' : 'translate-x-0.5'}`}
+                                    />
+                                </button>
+                            </div>
+
+                            {settings.browserBridge?.enabled && (
+                                <div className="mt-3 space-y-3 rounded-xl bg-gray-50 p-3">
+                                    {/* 真实监听状态 */}
+                                    <div className="flex items-center gap-2 text-sm">
+                                        {bridgeStatus?.running ? (
+                                            <>
+                                                <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                                                <span className="text-green-700">
+                                                    {t('settings.general.browserBridge.running', { port: settings.browserBridge?.port || 37123 })}
+                                                </span>
+                                            </>
+                                        ) : bridgeStatus?.error ? (
+                                            <>
+                                                <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                                                <span className="text-red-600">
+                                                    {t('settings.general.browserBridge.startFailed', { error: bridgeStatus.error })}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="w-2 h-2 rounded-full bg-gray-400 animate-pulse shrink-0" />
+                                                <span className="text-gray-500">{t('settings.general.browserBridge.starting')}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-sm text-gray-600">{t('settings.general.browserBridge.port')}</span>
+                                        <input
+                                            type="number"
+                                            min="1024"
+                                            max="65535"
+                                            value={settings.browserBridge?.port || 37123}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
+                                                if (!isNaN(val)) {
+                                                    handleNestedSettingChange('browserBridge', 'port', val);
+                                                }
+                                            }}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-28 text-sm"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <span className={`w-2 h-2 rounded-full shrink-0 ${bridgeStatus?.authorized ? 'bg-blue-500' : 'bg-gray-300'}`} />
+                                        <span className={bridgeStatus?.authorized ? 'text-blue-700' : 'text-gray-500'}>
+                                            {bridgeStatus?.authorized
+                                                ? t('settings.general.browserBridge.authorized')
+                                                : t('settings.general.browserBridge.notAuthorized')}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-gray-500">{t('settings.general.browserBridge.hint')}</p>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -596,8 +742,8 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
     );
 
     const renderPasswordSettings = () => (
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+        <div className="bg-white rounded-xl lg:rounded-2xl shadow-sm lg:shadow-lg p-4 lg:p-6">
+            <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-4 lg:mb-6 flex items-center gap-2">
                 <KeyIcon className="w-5 h-5" />
                 {t('settings.sections.password')}
             </h3>
@@ -647,10 +793,10 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
     );
 
     const renderDangerZone = () => (
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="text-center mb-6">
-                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <ExclamationTriangleIcon className="w-10 h-10 text-red-600" />
+        <div className="bg-white rounded-xl lg:rounded-2xl shadow-sm lg:shadow-lg p-4 lg:p-6">
+            <div className="text-center mb-4 lg:mb-6">
+                <div className="w-16 h-16 lg:w-20 lg:h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                    <ExclamationTriangleIcon className="w-8 h-8 lg:w-10 lg:h-10 text-red-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('settings.danger.title')}</h3>
                 <p className="text-gray-600">
@@ -741,17 +887,17 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
     };
 
     return (
-        <div className="h-screen mx-0 md:mx-24 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-8 overflow-hidden safe-area-bottom">
-            <div className="max-w-6xl mx-auto h-full">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-8 h-full">
-                    {/* 左侧设置菜单 */}
-                    <div className="lg:col-span-1 flex flex-col gap-4 overflow-y-auto max-h-[30vh] lg:max-h-full pb-4">
-                        <div className="bg-white rounded-2xl shadow-lg p-6 space-y-2 flex-grow overflow-hidden min-w-fit">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('settings.categoryTitle')}</h3>
+        <div className="h-full mx-0 md:mx-24 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-8 overflow-y-auto lg:overflow-hidden safe-area-bottom">
+            <div className="max-w-6xl mx-auto lg:h-full">
+                <div className="flex flex-col lg:grid lg:grid-cols-4 gap-4 md:gap-8 lg:h-full">
+                    {/* 左侧设置菜单：移动端为横向标签栏，桌面端为纵向列表 */}
+                    <div className="lg:col-span-1 flex flex-col gap-3 lg:gap-4 lg:overflow-y-auto lg:max-h-full">
+                        <div className="bg-white rounded-xl lg:rounded-2xl shadow-sm lg:shadow-lg p-2 lg:p-6 lg:space-y-2 flex flex-row lg:flex-col gap-1.5 lg:gap-2 flex-grow overflow-x-auto lg:overflow-hidden">
+                            <h3 className="hidden lg:block text-lg font-semibold text-gray-900 mb-4">{t('settings.categoryTitle')}</h3>
 
                             <button
                                 onClick={() => setActiveSection('general')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl transition-all duration-200 ${activeSection === 'general'
+                                className={`flex items-center gap-3 px-4 py-3 text-left rounded-xl transition-all duration-200 whitespace-nowrap lg:w-full ${activeSection === 'general'
                                     ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                     : 'text-gray-700 hover:bg-gray-50'
                                     }`}
@@ -762,7 +908,7 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
 
                             <button
                                 onClick={() => setActiveSection('password')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl transition-all duration-200 ${activeSection === 'password'
+                                className={`flex items-center gap-3 px-4 py-3 text-left rounded-xl transition-all duration-200 whitespace-nowrap lg:w-full ${activeSection === 'password'
                                     ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                     : 'text-gray-700 hover:bg-gray-50'
                                     }`}
@@ -774,7 +920,7 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
                             {!settings?.ui?.hideSensitiveButtons && (
                                 <button
                                     onClick={() => setActiveSection('danger')}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl transition-all duration-200 ${activeSection === 'danger'
+                                    className={`flex items-center gap-3 px-4 py-3 text-left rounded-xl transition-all duration-200 whitespace-nowrap lg:w-full ${activeSection === 'danger'
                                         ? 'bg-red-50 text-red-700 border border-red-200'
                                         : 'text-red-700 hover:bg-red-50'
                                         }`}
@@ -785,8 +931,8 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
                             )}
                         </div>
 
-                        {/* 项目链接与赞助 */}
-                        <div className="bg-white rounded-2xl shadow-lg p-4 space-y-2">
+                        {/* 项目链接与赞助（移动端隐藏，避免占满首屏） */}
+                        <div className="hidden lg:block bg-white rounded-2xl shadow-lg p-4 space-y-2">
                             <a
                                 href="https://github.com/loganchef/Ciphora"
                                 target="_blank"
@@ -814,7 +960,7 @@ const SettingsView = ({ onLogout, settings: initialSettings, onSettingsUpdate })
                     </div>
 
                     {/* 右侧设置内容 */}
-                    <div className="lg:col-span-3 overflow-y-auto h-full max-w-7xl pb-32">
+                    <div className="lg:col-span-3 lg:overflow-y-auto lg:h-full max-w-7xl pb-32">
                         {renderContent()}
                     </div>
                 </div>

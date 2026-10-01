@@ -5,7 +5,7 @@ pub mod import;
 pub mod settings;
 pub mod setup_response;
 
-pub use app_state::AppState;
+pub use app_state::{AppState, BridgeSession, PendingBridgeAuth};
 pub use group::Group;
 pub use password_entry::PasswordEntry;
 pub use import::{
@@ -18,6 +18,6 @@ pub use import::{
     ImportResolution,
     RestoreResponse,
 };
-pub use settings::{AppSettings, AutoLockSettings, ImportExportSettings, MfaSettings, PasswordGeneratorSettings, UiSettings};
+pub use settings::{AppSettings, AutoLockSettings, BrowserBridgeSettings, ImportExportSettings, MfaSettings, PasswordGeneratorSettings, TraySettings, UiSettings};
 pub use setup_response::{SetupResponse, SetupStatusResponse};
 

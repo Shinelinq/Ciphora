@@ -7,7 +7,7 @@ const SearchBox = ({ value, onChange }) => {
     const clearSearch = () => onChange('');
 
     return (
-        <div className="relative w-96">
+        <div className="relative w-full">
             <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 z-50 text-neutral-700" />
 
             <input

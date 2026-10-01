@@ -3,6 +3,7 @@
     "add": "添加",
     "edit": "编辑",
     "delete": "删除",
+    "undo": "撤销",
     "cancel": "取消",
     "save": "保存",
     "confirm": "确认",
@@ -28,6 +29,7 @@
     "unknownWebsite": "未知网站",
     "noUsername": "无用户名",
     "none": "无",
+    "moreInfo": "更多信息",
     "fileTypes": {
       "excel": "Excel文件",
       "csv": "CSV文件",
@@ -142,6 +144,7 @@
   },
   "vault": {
     "deleteConfirm": "您确定要删除 {{website}} 吗？此操作无法撤销。",
+    "deletedItem": "已删除“{{website}}”",
     "noResults": "未找到结果",
     "noResultsDesc": "没找到匹配您的搜索条件的条目。",
     "noPasswords": "保险库是空的",
@@ -329,16 +332,6 @@
       "decode_secret_failed": "解码密钥失败"
     },
     "security": {
-      "title": "导入预览",
-      "totalCount": "共 {{count}} 条",
-      "conflictCount": "{{count}} 个冲突",
-      "modeAdd": "仅添加",
-      "modeUpdate": "智能更新",
-      "modeReplace": "完全替换",
-      "keepExisting": "保留现有",
-      "useImported": "使用导入"
-    },
-    "security": {
       "title": "安全加密原理",
       "subtitle": "Ciphora 安全架构说明",
       "tabs": {
@@ -493,6 +486,7 @@
   "header": {
     "vault": "保险库",
     "dashboard": "操作面板",
+    "transfer": "数据传输",
     "logout": "退出"
   },
   "dashboard": {
@@ -590,6 +584,28 @@
         "custom": "自定义字符集",
         "customPlaceholder": "留空使用默认字符集"
       },
+      "tray": {
+        "minimizeToTray": {
+          "name": "最小化到托盘",
+          "description": "点击最小化按钮时隐藏到系统托盘，保持后台运行"
+        },
+        "closeToTray": {
+          "name": "关闭到托盘",
+          "description": "点击关闭按钮时不退出程序，缩入系统托盘后台运行"
+        },
+        "hint": "双击托盘图标可重新唤起主界面，右键托盘菜单选择“彻底退出”才会真正退出程序。"
+      },
+      "browserBridge": {
+        "name": "浏览器扩展桥接",
+        "description": "允许配套浏览器扩展在本机读取并自动填充密码（默认关闭，仅监听 127.0.0.1）",
+        "port": "监听端口",
+        "hint": "主密码不会离开桌面应用：在扩展中点击授权后，桌面端会弹出确认。库锁定或应用重启后需重新授权。",
+        "authorized": "扩展已授权",
+        "notAuthorized": "扩展未授权",
+        "running": "运行中 · 127.0.0.1:{{port}}",
+        "starting": "正在启动…",
+        "startFailed": "启动失败：{{error}}"
+      },
       "cardOrder": {
         "name": "卡片排序模式",
         "description": "设置卡片的默认显示顺序",
@@ -670,5 +686,10 @@
         "textMismatch": "确认文本不匹配，操作已取消"
       }
     }
+  },
+  "bridgeAuth": {
+    "title": "浏览器扩展请求连接",
+    "desc": "Ciphora 浏览器扩展正在请求读取本地密码库。仅在你本人发起时选择「允许」。",
+    "allow": "允许"
   }
 }

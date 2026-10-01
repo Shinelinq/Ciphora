@@ -385,7 +385,7 @@ const GroupManageModal = ({ isOpen, onClose, groups, onAdd, onUpdate, onDelete }
 
               {/* Icon grid */}
               {activeCategory && (
-                <div className="grid grid-cols-8 gap-1.5 max-h-48 overflow-y-auto p-1">
+                <div className="grid grid-cols-6 lg:grid-cols-8 gap-1.5 max-h-48 overflow-y-auto p-1">
                   {activeCategory[2].map((stem) => {
                     const key = `${activeCategory[1]}/${stem}`;
                     const selected = formData.icon === key;

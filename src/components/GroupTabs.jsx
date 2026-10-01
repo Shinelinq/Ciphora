@@ -70,7 +70,7 @@ const GroupTabs = ({ selectedGroupIds, onGroupFilterChange, groups, onManageGrou
       {/* Filter button */}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 ml-8 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${!isAll
+        className={`flex items-center gap-1.5 px-3 py-1.5 ml-0 lg:ml-8 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${!isAll
             ? 'bg-blue-600 text-white shadow-sm'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}

@@ -3,7 +3,7 @@ use tauri::{AppHandle, State};
 
 use crate::{
     dao,
-    model::{AppSettings, AppState, AutoLockSettings, ImportExportSettings, MfaSettings, PasswordGeneratorSettings, UiSettings},
+    model::{AppSettings, AppState, AutoLockSettings, BrowserBridgeSettings, ImportExportSettings, MfaSettings, PasswordGeneratorSettings, TraySettings, UiSettings},
 };
 
 /// 用途: 加载设置或返回默认; 输入: AppHandle; 输出: AppSettings; 必要性: UI 需要持久化配置。
@@ -96,6 +96,16 @@ fn apply_setting(settings: &mut AppSettings, key: &str, value: Value) -> Result<
             let update: ImportExportSettings = serde_json::from_value(value)
                 .map_err(|e| format!("invalid_importExport_format: {}", e))?;
             settings.import_export = update;
+        }
+        "tray" => {
+            let update: TraySettings = serde_json::from_value(value)
+                .map_err(|e| format!("invalid_tray_format: {}", e))?;
+            settings.tray = update;
+        }
+        "browserBridge" => {
+            let update: BrowserBridgeSettings = serde_json::from_value(value)
+                .map_err(|e| format!("invalid_browserBridge_format: {}", e))?;
+            settings.browser_bridge = update;
         }
         _ => return Err(format!("unsupported_setting_item: {}", key)),
     }

@@ -15,7 +15,7 @@ pub async fn load_settings(app: &AppHandle) -> Result<Option<String>, String> {
     }
 
     fs::read_to_string(file_path)
-        .map(|content| Some(content))
+        .map(Some)
         .map_err(|e| format!("读取设置失败: {}", e))
 }
 

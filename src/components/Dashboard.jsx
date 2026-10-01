@@ -39,7 +39,7 @@ const createFeatures = (passwordCount, t) => [
         href: "#",
         cta: "",
         comment: (
-            <div className="absolute w-full h-full text-7xl items-center justify-center flex -top-10 text-green-600 font-bold">
+            <div className="pointer-events-none absolute right-4 top-3 text-4xl font-bold text-green-600/80 lg:inset-0 lg:flex lg:items-center lg:justify-center lg:text-7xl lg:text-green-600">
                 {passwordCount}
             </div>
         ),
@@ -151,6 +151,72 @@ function Dashboard({ onAddPassword, onSearch, onSettings, onClearData, onImportP
         }
         return feature;
     });
+
+    // 移动端：使用简洁的操作面板（图标宫格 + 统计头部），不沿用桌面 bento 大卡
+    if (isMobile) {
+        const mobileActions = [
+            { id: 'add', Icon: PlusIcon, name: t('dashboard.addPassword.name'), desc: t('dashboard.addPassword.description'), onClick: onAddPassword, color: 'from-blue-500 to-indigo-500' },
+            { id: 'import', Icon: ArrowDownTrayIcon, name: t('dashboard.importData.name'), onClick: handleImportClick, color: 'from-indigo-500 to-purple-500' },
+            { id: 'export', Icon: ArrowUpTrayIcon, name: t('dashboard.exportBackup.name'), onClick: handleExportClick, color: 'from-teal-500 to-emerald-500' },
+            { id: 'cimbar', Icon: QrCodeIcon, name: t('dashboard.cimbar.name'), onClick: onShowCimbar, color: 'from-sky-500 to-blue-500' },
+            { id: 'security', Icon: ShieldCheckIcon, name: t('dashboard.security.name'), onClick: handleSecurityClick, color: 'from-rose-500 to-orange-500' },
+        ];
+
+        return (
+            <div className="h-full overflow-y-auto bg-slate-50 px-4 pt-4 pb-24">
+                {/* 统计头部 */}
+                <div className="mb-4 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center">
+                            <HashtagIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <div className="text-xs opacity-80">{t('dashboard.passwordCount.name')}</div>
+                            <div className="text-2xl font-bold leading-tight">{passwordCount}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 操作宫格 */}
+                <div className="grid grid-cols-2 gap-3">
+                    {mobileActions.map((action) => (
+                        <button
+                            key={action.id}
+                            onClick={action.onClick}
+                            className={`relative overflow-hidden rounded-2xl bg-white border border-gray-100 p-4 text-left active:scale-[0.98] transition-transform ${action.id === 'add' ? 'col-span-2' : ''}`}
+                        >
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.color} text-white flex items-center justify-center mb-3`}>
+                                <action.Icon className="w-5 h-5" />
+                            </div>
+                            <div className="text-sm font-semibold text-gray-900">{action.name}</div>
+                            {action.desc && (
+                                <div className="text-xs text-gray-400 mt-0.5 line-clamp-2">{action.desc}</div>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                <ImportExportModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    onImport={handleImportConfirm}
+                    onExport={null}
+                    type="import"
+                />
+                <ImportExportModal
+                    isOpen={showExportModal}
+                    onClose={() => setShowExportModal(false)}
+                    onImport={null}
+                    onExport={handleExportConfirm}
+                    type="export"
+                />
+                <SecurityModal
+                    isOpen={showSecurityModal}
+                    onClose={() => setShowSecurityModal(false)}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className={`h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 ${isMobile ? 'p-4 overflow-y-auto' : 'p-8 overflow-hidden'}`}>

@@ -18,6 +18,7 @@ pub async fn setup_master_password(
 
     state_dao::save_master_hash(app, &hash).await?;
     *state.master_password_hash.lock().unwrap() = Some(hash.clone());
+    app_state_service::set_session_password(state.inner(), &password);
     *state.is_authenticated.lock().unwrap() = true;
 
     Ok(SetupResponse {
@@ -40,6 +41,7 @@ pub async fn verify_master_password(
             .map_err(|e| format!("verification_failed: {}", e))?;
 
         if is_valid {
+            app_state_service::set_session_password(state.inner(), &password);
             *state.is_authenticated.lock().unwrap() = true;
         }
 
@@ -65,6 +67,7 @@ pub async fn check_setup_status(
 /// 用途: 注销当前用户; 输入: 全局状态; 输出: 操作结果; 必要性: 用户离开时需要清理认证状态。
 pub fn logout(state: State<'_, AppState>) -> Result<(), String> {
     *state.is_authenticated.lock().unwrap() = false;
+    app_state_service::clear_session_password(state.inner());
     Ok(())
 }
 
@@ -80,7 +83,8 @@ pub async fn reset_initialization_status(
     crate::dao::storage::clear_current_space(app).await?;
 
     // 3. 清除内存状态
-    *state.master_password_hash.lock().unwrap() = None;
+    app_state_service::clear_master_hash(state.inner());
+    app_state_service::clear_session_password(state.inner());
     *state.is_authenticated.lock().unwrap() = false;
 
     Ok(())

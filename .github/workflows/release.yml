@@ -91,6 +91,7 @@ jobs:
             - **Linux**: `Ciphora_*_amd64.AppImage` 或 `.deb`
             - **Android**: `Ciphora_*.apk`
             - **iOS**: `Ciphora_*.ipa`（需要自签或 TestFlight）
+            - **浏览器扩展**: `ciphora-extension-*.zip`（Chrome/Edge 开发者模式加载）
           releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.target }}
@@ -144,6 +145,9 @@ jobs:
       - name: Initialize Tauri Android project
         run: npm run tauri:android:init
 
+      - name: Patch mobile permissions (camera)
+        run: bash scripts/patch-mobile-permissions.sh
+
       - name: Build Android APK
         run: npm run tauri:android:build -- --apk true
         env:
@@ -195,6 +199,9 @@ jobs:
       - name: Initialize Tauri iOS project
         run: npm run tauri:ios:init
 
+      - name: Patch mobile permissions (camera)
+        run: bash scripts/patch-mobile-permissions.sh
+
       - name: Build iOS (simulator, no signing)
         run: |
           npm run tauri:ios:build -- --target aarch64-sim
@@ -224,5 +231,44 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ios-artifacts/*.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── Browser Extension (Manifest V3) ────────────────────────────────────────
+  build-extension:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate manifest
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('browser-extension/manifest.json','utf8')); console.log('manifest.json ok')"
+
+      - name: Package extension
+        run: |
+          set -e
+          STAGE="ciphora-extension"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          cp -r browser-extension/manifest.json browser-extension/src browser-extension/icons "$STAGE/"
+          # 版本号对齐发布 tag（去掉前缀 v）
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          node -e "const fs=require('fs');const f='$STAGE/manifest.json';const m=JSON.parse(fs.readFileSync(f,'utf8'));m.version='$VERSION';fs.writeFileSync(f,JSON.stringify(m,null,2)+'\n');"
+          zip -r "ciphora-extension-${{ github.ref_name }}.zip" "$STAGE"
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-extension-${{ github.ref_name }}
+          path: ciphora-extension-*.zip
+          retention-days: 30
+
+      - name: Upload extension to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ciphora-extension-*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

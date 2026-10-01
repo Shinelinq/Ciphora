@@ -23,16 +23,19 @@ export default defineConfig({
       },
       output: {
         manualChunks: (id) => {
-          // 将node_modules中的包分组
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor';
-            }
-            if (id.includes('@heroicons')) {
-              return 'icons';
-            }
-            return 'vendor';
-          }
+          if (!id.includes('node_modules')) return undefined;
+          // 图标库
+          if (id.includes('@heroicons') || id.includes('lucide-react')) return 'icons';
+          // React 运行时
+          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) return 'react';
+          // 国际化
+          if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n';
+          // Tauri API 与插件
+          if (id.includes('@tauri-apps')) return 'tauri';
+          // 按需加载的重型依赖，独立成块（仅在使用时下载）
+          if (id.includes('xlsx')) return 'xlsx';
+          if (id.includes('qrcode') || id.includes('jsqr') || id.includes('gif.js')) return 'qr';
+          return 'vendor';
         }
       },
     },
@@ -44,7 +47,9 @@ export default defineConfig({
     sourcemap: false
   },
   server: {
-    port: 3000,
+    // Tauri devUrl 必须与此端口一致；1420 为 Tauri 惯例端口，避开常见的 3000 占用
+    port: 1420,
+    strictPort: true,
   },
   resolve: {
     alias: {

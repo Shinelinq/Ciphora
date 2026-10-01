@@ -504,9 +504,11 @@ export default function CimbarDecoder({ onDecoded, onError, onProgress }) {
                         </button>
                         {!isDecoding && (
                             <>
+                                {typeof navigator !== 'undefined' && navigator.mediaDevices?.getDisplayMedia && (
                                 <button onClick={startScreenDecoding} className="flex-1 py-4 rounded-2xl bg-slate-800 text-white font-black text-[10px] uppercase tracking-[0.1em] hover:bg-slate-700 transition-all flex items-center justify-center gap-2 shadow-lg">
                                     <Monitor className="w-4 h-4" /> {t('cimbar.screenRecord')}
                                 </button>
+                                )}
                                 <button onClick={handleImportVideo} className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-[0.1em] hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg border border-white/5">
                                     <Upload className="w-4 h-4" /> {t('cimbar.importFile')}
                                 </button>

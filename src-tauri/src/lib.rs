@@ -28,10 +28,21 @@ pub fn run() {
             let app_handle = app.handle();
             let state = app.state::<AppState>();
             if let Err(err) = tauri::async_runtime::block_on(async {
-                app_state_service::initialize(&app_handle, state.inner()).await
+                app_state_service::initialize(app_handle, state.inner()).await
             }) {
                 eprintln!("初始化应用状态失败: {}", err);
             }
+
+            #[cfg(not(any(target_os = "android", target_os = "ios")))]
+            {
+                if let Err(err) = service::tray::setup_tray(app_handle) {
+                    eprintln!("创建系统托盘失败: {}", err);
+                }
+                service::tray::register_close_handler(app_handle);
+                service::tray::spawn_minimize_watcher(app_handle.clone());
+                service::bridge::start(app_handle.clone());
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -83,6 +94,9 @@ pub fn run() {
             // 系统
             get_app_info,
             get_system_locale,
+            set_app_language,
+            get_bridge_status,
+            respond_bridge_auth,
 
             // 分组管理
             get_groups,
