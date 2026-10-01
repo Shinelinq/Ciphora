@@ -96,6 +96,32 @@ jobs:
           prerelease: false
           args: --target ${{ matrix.target }}
 
+      - name: Patch AppImage .DirIcon (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          set -e
+          APPIMAGE="$(ls src-tauri/target/release/bundle/appimage/*.AppImage 2>/dev/null | grep -vi zsync | head -n1 || true)"
+          if [ -z "$APPIMAGE" ]; then echo "未找到 AppImage，跳过"; exit 0; fi
+          bash scripts/fix-appimage-diricon.sh "$APPIMAGE"
+
+      - name: Verify AppImage icon (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          set -e
+          APPIMAGE="$(ls src-tauri/target/release/bundle/appimage/*.AppImage 2>/dev/null | grep -vi zsync | head -n1 || true)"
+          if [ -z "$APPIMAGE" ]; then echo "未找到 AppImage，跳过"; exit 0; fi
+          bash scripts/verify-appimage-icon.sh "$APPIMAGE"
+
+      - name: Re-upload patched AppImage (Linux)
+        if: matrix.platform == 'linux'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: src-tauri/target/release/bundle/appimage/*.AppImage
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # ─── Android ────────────────────────────────────────────────────────────────
   build-android:
     runs-on: ubuntu-22.04
