@@ -52,7 +52,7 @@ else
 fi
 
 # ── iOS: 相机用途说明（否则调用相机会被系统终止） ────────────────────────────
-IOS_PLISTS="$(find "${ROOT_DIR}/src-tauri/gen/apple" -name 'Info.plist' 2>/dev/null || true)"
+IOS_PLISTS="$(find "${ROOT_DIR}/src-tauri/gen/apple" -path '*/build/*' -prune -o -name 'Info.plist' -print 2>/dev/null || true)"
 if [[ -n "${IOS_PLISTS}" ]]; then
   while IFS= read -r plist; do
     [[ -z "${plist}" ]] && continue
@@ -87,6 +87,23 @@ PY
   done <<< "${IOS_PLISTS}"
 else
   echo "ℹ️  未找到 iOS 工程（跳过，先运行 tauri ios init）"
+fi
+
+# ── iOS: 应用图标 ────────────────────────────────────────────────────────────
+# `tauri ios init` 生成的 AppIcon.appiconset 不会采用 src-tauri/icons/ios 下的图标，
+# 导致打包出的 App 使用错误的图标。这里在 init 后强制写入正确的图标。
+IOS_APPICON_DIR="${ROOT_DIR}/src-tauri/gen/apple/Assets.xcassets/AppIcon.appiconset"
+IOS_ICON_SRC="${ROOT_DIR}/src-tauri/icons/ios"
+if [[ -d "${IOS_APPICON_DIR}" && -d "${IOS_ICON_SRC}" ]]; then
+  if cmp -s "${IOS_ICON_SRC}/AppIcon-512@2x.png" "${IOS_APPICON_DIR}/AppIcon-512@2x.png" 2>/dev/null; then
+    echo "✅ iOS 应用图标已就绪: ${IOS_APPICON_DIR}"
+  else
+    cp "${IOS_ICON_SRC}"/*.png "${IOS_APPICON_DIR}/"
+    echo "➕ 已写入正确的 iOS 应用图标: ${IOS_APPICON_DIR}"
+    CHANGED=1
+  fi
+else
+  echo "ℹ️  未找到 iOS AppIcon.appiconset（跳过，先运行 tauri ios init）"
 fi
 
 if [[ "${CHANGED}" -eq 0 ]]; then
