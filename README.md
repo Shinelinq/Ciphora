@@ -170,6 +170,8 @@ Master password never stored · Data never leaves your device
 
 A companion **Manifest V3** extension (Chrome / Edge / Brave) fills logins and TOTP codes from your local vault. Passwords never leave your machine — and never enter the browser.
 
+> 📖 **Step-by-step guide: [docs/BROWSER_EXTENSION.md](docs/BROWSER_EXTENSION.md)**
+
 **What it does**
 
 - 🔎 **Domain-matched autofill** — on a login page, if the domain exactly matches a **single** saved entry, credentials are filled automatically.

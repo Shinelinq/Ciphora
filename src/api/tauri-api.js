@@ -471,8 +471,11 @@ export const tauriAPI = {
     return await invoke('generate_password', {
       length: options.length || 16,
       includeUppercase: options.includeUppercase !== false,
+      includeLowercase: options.includeLowercase !== false,
       includeNumbers: options.includeNumbers !== false,
       includeSymbols: options.includeSymbols !== false,
+      excludeSimilar: options.excludeSimilar === true,
+      customCharset: options.customCharset || '',
     });
   },
 

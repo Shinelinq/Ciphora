@@ -20,6 +20,7 @@ import TOTPDisplay from './TOTPDisplay';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useGroups } from '../hooks/useGroups';
+import { generatePasswordFromSettings } from '../lib/password-generator';
 import jsQR from 'jsqr';
 import { useTranslation } from 'react-i18next';
 
@@ -307,33 +308,8 @@ const AddPasswordModal = ({ onClose, onSave }) => {
     };
 
     const generatePassword = async () => {
-        try {
-            // 不传递任何选项，让后端使用用户设置
-            const result = await window.api.generatePassword({});
-            if (result.success) {
-                handleInputChange('password', result.password);
-            } else {
-                console.error('生成密码失败:', result.message);
-                // 如果后端失败，使用本地生成作为备用
-                const fallbackPassword = generateFallbackPassword();
-                handleInputChange('password', fallbackPassword);
-            }
-        } catch (error) {
-            console.error('生成密码失败:', error);
-            // 如果API调用失败，使用本地生成作为备用
-            const fallbackPassword = generateFallbackPassword();
-            handleInputChange('password', fallbackPassword);
-        }
-    };
-
-    const generateFallbackPassword = () => {
-        const length = 16;
-        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-        let password = '';
-        for (let i = 0; i < length; i++) {
-            password += charset.charAt(Math.floor(Math.random() * charset.length));
-        }
-        return password;
+        const generated = await generatePasswordFromSettings(settings);
+        handleInputChange('password', generated);
     };
 
     const extractUrlParts = (url) => {

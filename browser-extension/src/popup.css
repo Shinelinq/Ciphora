@@ -188,7 +188,7 @@ body {
 
 .entry-list .username {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -201,7 +201,7 @@ body {
 }
 
 .tag {
-  font-size: 10px;
+  font-size: 11px;
   padding: 1px 6px;
   border-radius: 999px;
   background: #eff6ff;
@@ -225,6 +225,7 @@ body {
 
 .detail-username {
   color: var(--muted);
+  font-size: 12px;
   margin-bottom: 10px;
   word-break: break-all;
 }
@@ -242,7 +243,7 @@ button {
   border-radius: 8px;
   background: #fff;
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -338,7 +339,7 @@ button.link {
 .footer {
   padding: 8px 12px 10px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   text-align: center;
 }
 .header-actions {

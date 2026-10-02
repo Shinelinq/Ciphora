@@ -149,19 +149,40 @@ pub fn decrypt_bytes(data: &[u8], password: &str) -> Result<Vec<u8>, String> {
 pub fn generate_random_password(
     length: usize,
     include_uppercase: bool,
+    include_lowercase: bool,
     include_numbers: bool,
     include_symbols: bool,
+    exclude_similar: bool,
+    custom_charset: Option<&str>,
 ) -> Result<String, String> {
-    let mut charset = "abcdefghijklmnopqrstuvwxyz".to_string();
+    let custom = custom_charset.unwrap_or("").trim();
+    let mut charset = if !custom.is_empty() {
+        // 自定义字符集：非空时替换默认字符集
+        custom.to_string()
+    } else {
+        let mut c = String::new();
+        if include_lowercase {
+            c.push_str("abcdefghijklmnopqrstuvwxyz");
+        }
+        if include_uppercase {
+            c.push_str("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+        }
+        if include_numbers {
+            c.push_str("0123456789");
+        }
+        if include_symbols {
+            c.push_str("!@#$%^&*()-_=+[]{}|;:,.<>?");
+        }
+        c
+    };
 
-    if include_uppercase {
-        charset.push_str("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    if exclude_similar {
+        const SIMILAR: &str = "0O1lI";
+        charset = charset.chars().filter(|ch| !SIMILAR.contains(*ch)).collect();
     }
-    if include_numbers {
-        charset.push_str("0123456789");
-    }
-    if include_symbols {
-        charset.push_str("!@#$%^&*()-_=+[]{}|;:,.<>?");
+
+    if charset.is_empty() {
+        return Err("empty_charset".to_string());
     }
 
     let chars: Vec<char> = charset.chars().collect();
@@ -174,3 +195,33 @@ pub fn generate_random_password(
     Ok(password)
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::generate_random_password;
+
+    #[test]
+    fn respects_length_and_charset() {
+        let pw = generate_random_password(24, false, true, false, false, false, None).unwrap();
+        assert_eq!(pw.chars().count(), 24);
+        assert!(pw.chars().all(|c| c.is_ascii_lowercase()));
+    }
+
+    #[test]
+    fn custom_charset_replaces_default() {
+        let pw = generate_random_password(10, true, true, true, true, false, Some("AB")).unwrap();
+        assert_eq!(pw.chars().count(), 10);
+        assert!(pw.chars().all(|c| c == 'A' || c == 'B'));
+    }
+
+    #[test]
+    fn exclude_similar_removes_ambiguous() {
+        let pw = generate_random_password(300, true, true, true, false, true, None).unwrap();
+        assert!(!pw.chars().any(|c| "0O1lI".contains(c)));
+    }
+
+    #[test]
+    fn empty_charset_errors() {
+        assert!(generate_random_password(8, false, false, false, false, false, None).is_err());
+    }
+}

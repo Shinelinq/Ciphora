@@ -170,6 +170,8 @@ AES-256-GCM 密钥
 
 配套的 **Manifest V3** 扩展（Chrome / Edge / Brave）可从本地密码库填充账号与 TOTP 验证码。密码不离开你的电脑，也不会进入浏览器。
 
+> 📖 **详细使用指南：[docs/BROWSER_EXTENSION.md](docs/BROWSER_EXTENSION.md)**
+
 **能力**
 
 - 🔎 **按域名自动填充** —— 登录页域名与某条记录**完全匹配且唯一**时，自动填入账号密码。

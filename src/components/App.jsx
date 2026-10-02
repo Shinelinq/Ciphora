@@ -875,6 +875,7 @@ const App = () => {
                     password={editingPassword}
                     onClose={closeEditModal}
                     onSave={handleUpdatePassword}
+                    settings={settings}
                 />
             )}
 

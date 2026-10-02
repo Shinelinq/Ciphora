@@ -285,7 +285,7 @@ fn handle_connection(mut stream: TcpStream, app: &AppHandle) -> std::io::Result<
         ("GET", "/entries") => entries(app, &query),
         ("GET", "/entry") => entry(app, &query),
         ("GET", "/totp") => totp(app, &query),
-        ("POST", "/generate") => generate(&body),
+        ("POST", "/generate") => generate(app, &body),
         ("POST", "/lock") => {
             revoke_session(app);
             Ok(json!({ "success": true }))
@@ -359,7 +359,7 @@ fn write_response(
 
 /// 用途: 生成并登记一个短期会话; 输入: AppHandle; 输出: 会话令牌。
 fn issue_session(app: &AppHandle) -> String {
-    let token = crypto::generate_random_password(48, true, true, false)
+    let token = crypto::generate_random_password(48, true, true, true, false, false, None)
         .unwrap_or_else(|_| uuid::Uuid::new_v4().simple().to_string());
     let state = app.state::<AppState>();
     *state.bridge_session.lock().unwrap() = Some(BridgeSession {
@@ -674,32 +674,63 @@ fn totp(app: &AppHandle, query: &HashMap<String, String>) -> Result<Value, Strin
     }))
 }
 
-fn generate(body: &[u8]) -> Result<Value, String> {
+fn generate(app: &AppHandle, body: &[u8]) -> Result<Value, String> {
     let parsed: Value = if body.is_empty() {
         json!({})
     } else {
         serde_json::from_slice(body).map_err(|e| format!("invalid_body: {}", e))?
     };
 
+    // 未显式指定的项，回退到用户在桌面端的生成器设置
+    let pg = app
+        .state::<AppState>()
+        .settings
+        .lock()
+        .unwrap()
+        .password_generator
+        .clone();
+
     let length = parsed
         .get("length")
         .and_then(|v| v.as_u64())
-        .unwrap_or(16)
-        .clamp(4, 128) as usize;
+        .map(|v| v as usize)
+        .unwrap_or(pg.default_length)
+        .clamp(4, 128);
     let uppercase = parsed
         .get("includeUppercase")
         .and_then(|v| v.as_bool())
-        .unwrap_or(true);
+        .unwrap_or(pg.include_uppercase);
+    let lowercase = parsed
+        .get("includeLowercase")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(pg.include_lowercase);
     let numbers = parsed
         .get("includeNumbers")
         .and_then(|v| v.as_bool())
-        .unwrap_or(true);
+        .unwrap_or(pg.include_numbers);
     let symbols = parsed
         .get("includeSymbols")
         .and_then(|v| v.as_bool())
-        .unwrap_or(true);
+        .unwrap_or(pg.include_symbols);
+    let exclude_similar = parsed
+        .get("excludeSimilar")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(pg.exclude_similar);
+    let custom_charset = parsed
+        .get("customCharset")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or(pg.custom_charset);
 
-    let password = crypto::generate_random_password(length, uppercase, numbers, symbols)?;
+    let password = crypto::generate_random_password(
+        length,
+        uppercase,
+        lowercase,
+        numbers,
+        symbols,
+        exclude_similar,
+        Some(custom_charset.as_str()),
+    )?;
     Ok(json!({ "password": password }))
 }
 

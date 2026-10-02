@@ -314,10 +314,21 @@ pub async fn prepare_cimbar_payload(
 pub async fn generate_password(
     length: usize,
     include_uppercase: bool,
+    include_lowercase: bool,
     include_numbers: bool,
-    include_symbols: bool
+    include_symbols: bool,
+    exclude_similar: Option<bool>,
+    custom_charset: Option<String>,
 ) -> Result<String, String> {
-    crypto::generate_random_password(length, include_uppercase, include_numbers, include_symbols)
+    crypto::generate_random_password(
+        length,
+        include_uppercase,
+        include_lowercase,
+        include_numbers,
+        include_symbols,
+        exclude_similar.unwrap_or(false),
+        custom_charset.as_deref(),
+    )
 }
 
 /// 用途: 生成 MFA 密钥; 输入: 无; 输出: Base32 密钥; 必要性: 开启 MFA 时的后端支持。

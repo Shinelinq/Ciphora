@@ -336,7 +336,7 @@ els.fillTotpBtn.addEventListener('click', async () => {
 });
 
 els.genBtn.addEventListener('click', async () => {
-  const res = await sendMessage({ type: 'generate', options: { length: 20 } });
+  const res = await sendMessage({ type: 'generate' });
   if (!res.ok) {
     showError(res.error);
     return;
