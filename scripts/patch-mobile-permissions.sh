@@ -89,6 +89,42 @@ else
   echo "ℹ️  未找到 iOS 工程（跳过，先运行 tauri ios init）"
 fi
 
+# ── iOS: 部署目标 15.0 ───────────────────────────────────────────────────────
+# 生成的工程默认是 14.0，会让 Swift 需要并发 back-deployment 兼容库
+# (__swift_FORCE_LOAD_$_swiftCompatibilityConcurrency)，在部分 Xcode 工具链下链接失败。
+# Rust 侧本就按 15.0 构建，这里统一为 15.0。
+DEPLOY_OUT="$(python3 - "${ROOT_DIR}" <<'PY'
+import os, re, sys, glob
+root = sys.argv[1]
+out = []
+yml = os.path.join(root, 'src-tauri/gen/apple/project.yml')
+if os.path.isfile(yml):
+    s = open(yml, encoding='utf-8').read()
+    new = re.sub(r'iOS:\s*"?1[0-4](?:\.[0-9]+)?"?', 'iOS: "15.0"', s)
+    if new != s:
+        open(yml, 'w', encoding='utf-8').write(new)
+        out.append('➕ 已设置 iOS 部署目标为 15.0: ' + yml)
+for pbx in glob.glob(os.path.join(root, 'src-tauri/gen/apple/**/project.pbxproj'), recursive=True):
+    if '/build/' in pbx:
+        continue
+    try:
+        s = open(pbx, encoding='utf-8', errors='ignore').read()
+    except OSError:
+        continue
+    new = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = 1[0-4](?:\.[0-9]+)?;', 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;', s)
+    if new != s:
+        open(pbx, 'w', encoding='utf-8').write(new)
+        out.append('➕ 已设置 Xcode 部署目标为 15.0: ' + pbx)
+if not out:
+    out.append('✅ iOS 部署目标已就绪 (15.0)')
+print('\n'.join(out))
+PY
+)"
+echo "${DEPLOY_OUT}"
+if echo "${DEPLOY_OUT}" | grep -q '➕'; then
+  CHANGED=1
+fi
+
 # ── iOS: 应用图标 ────────────────────────────────────────────────────────────
 # `tauri ios init` 生成的 AppIcon.appiconset 不会采用 src-tauri/icons/ios 下的图标，
 # 导致打包出的 App 使用错误的图标。这里在 init 后强制写入正确的图标。

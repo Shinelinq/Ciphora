@@ -144,6 +144,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # 默认值包含已废弃的 'tools' 包，会导致 "Failed to find package 'tools'"
+          packages: 'platform-tools'
 
       - name: Install Android NDK
         run: |
