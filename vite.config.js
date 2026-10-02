@@ -22,21 +22,9 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
       },
       output: {
-        manualChunks: (id) => {
-          if (!id.includes('node_modules')) return undefined;
-          // 图标库
-          if (id.includes('@heroicons') || id.includes('lucide-react')) return 'icons';
-          // React 运行时
-          if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) return 'react';
-          // 国际化
-          if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n';
-          // Tauri API 与插件
-          if (id.includes('@tauri-apps')) return 'tauri';
-          // 按需加载的重型依赖，独立成块（仅在使用时下载）
-          if (id.includes('xlsx')) return 'xlsx';
-          if (id.includes('qrcode') || id.includes('jsqr') || id.includes('gif.js')) return 'qr';
-          return 'vendor';
-        }
+        // 不使用自定义 manualChunks：手动拆包会在 CJS 依赖（React 运行时）之间制造
+        // 循环依赖，导致生产构建出现 "Cannot set properties of undefined" 白屏。
+        // 交给 Rollup 自动分包；xlsx 等按需 import 的依赖会自动成为懒加载 chunk。
       },
     },
     // 减少chunk大小警告阈值
