@@ -5,6 +5,7 @@ pub mod import;
 pub mod settings;
 pub mod setup_response;
 
+#[cfg_attr(any(target_os = "android", target_os = "ios"), allow(unused_imports))]
 pub use app_state::{AppState, BridgeSession, PendingBridgeAuth};
 pub use group::Group;
 pub use password_entry::PasswordEntry;

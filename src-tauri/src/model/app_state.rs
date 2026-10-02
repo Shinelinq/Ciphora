@@ -4,12 +4,14 @@ use std::time::Instant;
 use super::AppSettings;
 
 /// 浏览器扩展桥接的短期授权会话（仅内存，进程退出即失效）。
+#[cfg_attr(any(target_os = "android", target_os = "ios"), allow(dead_code))]
 pub struct BridgeSession {
     pub token: String,
     pub expires_at: Instant,
 }
 
 /// 浏览器扩展的待处理授权请求。
+#[cfg_attr(any(target_os = "android", target_os = "ios"), allow(dead_code))]
 pub struct PendingBridgeAuth {
     pub id: String,
     pub created: Instant,
@@ -31,6 +33,7 @@ pub struct AppState {
     /// 待处理的扩展授权请求（等待用户在桌面端确认）。
     pub bridge_auth_request: Mutex<Option<PendingBridgeAuth>>,
     /// 桥接授权失败的最近时间点，用于失败限流。
+    #[cfg_attr(any(target_os = "android", target_os = "ios"), allow(dead_code))]
     pub bridge_auth_failures: Mutex<Vec<Instant>>,
     pub is_authenticated: Mutex<bool>,
     pub device_id: Mutex<Option<String>>,

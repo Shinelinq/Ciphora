@@ -208,6 +208,11 @@ jobs:
           node-version: "22"
           cache: "npm"
 
+      - name: Select stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
       - name: Install Rust stable + iOS targets
         uses: dtolnay/rust-toolchain@stable
         with:

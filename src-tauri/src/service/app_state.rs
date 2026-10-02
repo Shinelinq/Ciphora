@@ -30,6 +30,7 @@ pub fn clear_session_password(state_ref: &AppState) {
 }
 
 /// 用途: 读取本次会话主密码的临时副本; 输入: 状态; 输出: 可选密码。
+#[cfg_attr(any(target_os = "android", target_os = "ios"), allow(dead_code))]
 pub fn session_password(state_ref: &AppState) -> Option<String> {
     state_ref.session_master_password.lock().unwrap().clone()
 }
