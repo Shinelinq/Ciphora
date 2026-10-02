@@ -97,13 +97,24 @@ DEPLOY_OUT="$(python3 - "${ROOT_DIR}" <<'PY'
 import os, re, sys, glob
 root = sys.argv[1]
 out = []
+
+def fix_toolchain(s):
+    # Xcode 26 会下载 Metal toolchain，导致 $(TOOLCHAIN_DIR) 指向它（那里没有 Swift 兼容库）。
+    # $(DT_TOOLCHAIN_DIR) 永远指向 XcodeDefault toolchain。
+    return s.replace('$(TOOLCHAIN_DIR)/usr/lib/swift', '$(DT_TOOLCHAIN_DIR)/usr/lib/swift')
+
 yml = os.path.join(root, 'src-tauri/gen/apple/project.yml')
 if os.path.isfile(yml):
     s = open(yml, encoding='utf-8').read()
     new = re.sub(r'iOS:\s*"?1[0-4](?:\.[0-9]+)?"?', 'iOS: "15.0"', s)
-    if new != s:
-        open(yml, 'w', encoding='utf-8').write(new)
-        out.append('➕ 已设置 iOS 部署目标为 15.0: ' + yml)
+    tc_fixed = fix_toolchain(new)
+    if tc_fixed != new:
+        out.append('➕ 已修正 Swift 搜索路径为 DT_TOOLCHAIN_DIR: ' + yml)
+    if tc_fixed != s:
+        open(yml, 'w', encoding='utf-8').write(tc_fixed)
+        if new != s:
+            out.append('➕ 已设置 iOS 部署目标为 15.0: ' + yml)
+
 for pbx in glob.glob(os.path.join(root, 'src-tauri/gen/apple/**/project.pbxproj'), recursive=True):
     if '/build/' in pbx:
         continue
@@ -112,11 +123,16 @@ for pbx in glob.glob(os.path.join(root, 'src-tauri/gen/apple/**/project.pbxproj'
     except OSError:
         continue
     new = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = 1[0-4](?:\.[0-9]+)?;', 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;', s)
-    if new != s:
-        open(pbx, 'w', encoding='utf-8').write(new)
-        out.append('➕ 已设置 Xcode 部署目标为 15.0: ' + pbx)
+    tc_fixed = fix_toolchain(new)
+    if tc_fixed != s:
+        open(pbx, 'w', encoding='utf-8').write(tc_fixed)
+        if new != s:
+            out.append('➕ 已设置 Xcode 部署目标为 15.0: ' + pbx)
+        if tc_fixed != new:
+            out.append('➕ 已修正 Xcode Swift 搜索路径为 DT_TOOLCHAIN_DIR: ' + pbx)
+
 if not out:
-    out.append('✅ iOS 部署目标已就绪 (15.0)')
+    out.append('✅ iOS 部署目标与 Swift 搜索路径已就绪')
 print('\n'.join(out))
 PY
 )"
