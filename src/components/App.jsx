@@ -517,31 +517,32 @@ const App = () => {
     const handlePasswordConfirm = async (password) => {
         try {
             if (pendingImportData) {
-                // 处理导入操作
                 const { apiCall, backupData, filePath, fileType } = pendingImportData;
-                let importResult;
 
                 if (apiCall === 'importCiphoraBackup') {
-                    // Ciphora备份导入
-                    importResult = await window.api[apiCall](backupData, password);
+                    // .ciphora 备份：直接解密并恢复，后端返回 { success, message, restoredCount }，不含 analysis
+                    const restoreResult = await window.api.importCiphoraBackup(backupData, password);
+                    if (!restoreResult.success) {
+                        throw new Error(restoreResult.message);
+                    }
+                    alert(t('common.restoreSuccess'));
+                    await loadPasswords();
                 } else {
-                    // 普通文件导入（Excel、CSV）
+                    // 普通文件导入（Excel / CSV / JSON）：先分析，再按需预览或直接写入
                     let backendFileType = fileType;
                     if (fileType === 'csv') {
                         backendFileType = 'text'; // 后端使用 'text' 表示CSV文件
                     }
-                    importResult = await window.api[apiCall](filePath, backendFileType);
-                }
-
-                if (importResult.success) {
+                    const importResult = await window.api[apiCall](filePath, backendFileType);
+                    if (!importResult.success) {
+                        throw new Error(importResult.message);
+                    }
                     if (importResult.requiresPreview) {
                         setImportPreviewData(importResult.analysis);
                         setShowImportPreview(true);
                     } else {
-                        // 没有冲突，直接导入
-                        const allImportData = [...importResult.analysis.new];
+                        const allImportData = [...(importResult.analysis?.new || [])];
                         const processResult = await window.api.processImportWithResolution(allImportData, { mode: 'add', conflicts: {} });
-
                         if (processResult.success) {
                             alert(t('common.importSuccess') + ' ' + processResult.message);
                             await loadPasswords();
@@ -549,8 +550,6 @@ const App = () => {
                             throw new Error(processResult.message);
                         }
                     }
-                } else {
-                    throw new Error(importResult.message);
                 }
             } else if (pendingBackupAction) {
                 // 处理备份操作
