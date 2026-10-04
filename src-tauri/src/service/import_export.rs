@@ -205,6 +205,25 @@ pub async fn restore_backup(
     })
 }
 
+/// 用途: 解密 .ciphora 备份并分析，用于「合并导入 + 冲突对比」（不直接写入库）;
+///       输入: 备份数据、备份密码、主密码; 输出: 新增/冲突列表。
+pub async fn analyze_ciphora_backup(
+    backup_data: BackupFile,
+    backup_password: String,
+    master_password: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<ImportAnalysisResponse, String> {
+    let payload = backup_data
+        .payload
+        .ok_or_else(|| "unsupported_backup_format".to_string())?;
+    let decrypted = crypto::decrypt_data(&payload, &backup_password)
+        .map_err(|_| "backup_password_incorrect_or_file_corrupted".to_string())?;
+    let passwords: Vec<PasswordEntry> = serde_json::from_str(&decrypted)
+        .map_err(|e| format!("backup_parse_failed: {}", e))?;
+    analyze_import_data(passwords, master_password, app, state).await
+}
+
 pub async fn import_cimbar_payload(
     data: String,
     share_password_set: bool,

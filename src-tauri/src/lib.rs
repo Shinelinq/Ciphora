@@ -89,6 +89,7 @@ pub fn run() {
             process_import_with_resolution,
             create_backup,
             restore_backup,
+            analyze_ciphora_backup,
             export_data,
             import_data,
             

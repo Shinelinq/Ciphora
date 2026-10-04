@@ -216,6 +216,18 @@ pub async fn restore_backup(
     import_export::restore_backup(backup_data, backup_password, master_password, app, state).await
 }
 
+/// 用途: 解密 .ciphora 备份并分析（用于合并导入与冲突对比）; 输入: 备份文件、备份密码、主密码; 输出: 分析结果。
+#[tauri::command]
+pub async fn analyze_ciphora_backup(
+    backup_data: BackupFile,
+    backup_password: String,
+    master_password: String,
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<ImportAnalysisResponse, String> {
+    import_export::analyze_ciphora_backup(backup_data, backup_password, master_password, app, state).await
+}
+
 /// 用途: 添加密码; 输入: 数据、主密码、AppHandle、状态; 输出: 新记录; 必要性: 后端负责 CRUD。
 #[tauri::command]
 pub async fn add_password(

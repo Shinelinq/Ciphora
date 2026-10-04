@@ -365,6 +365,16 @@ export const tauriAPI = {
     return await this.restoreBackup(backupData, backupPassword);
   },
 
+  async analyzeCiphoraBackup(backupData, backupPassword) {
+    try {
+      const masterPassword = getMasterPassword();
+      return await invoke('analyze_ciphora_backup', { backupData, backupPassword, masterPassword });
+    } catch (error) {
+      console.error('分析备份失败:', error);
+      return { success: false, message: error.message };
+    }
+  },
+
   async importCimbarPayload(data, sharePasswordSet, sharePassword) {
     try {
       const masterPassword = getMasterPassword();
